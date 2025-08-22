@@ -1,5 +1,11 @@
 backend/.venv
-
+backend/__pycache__
+backend/alembic\versions\__pycache__
+**.pyc
+**.mako
+**.db
+**.sqlite
+**.lock
 
 frontend/.next
 frontend/.vscode

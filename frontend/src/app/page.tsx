@@ -1,12 +1,10 @@
-import { Gallery } from "@/components/Gallery";
-import { getGalleryImages } from "@/lib/getGalleryImages";
+'use client'
+import { Booking } from "@/components/Booking"
 
 export default function Home() {
-  const images = getGalleryImages();
   return (
-    <section className="space-y-6 ">
-      <h1 >Наши корты</h1>
-      <Gallery images={images}/>
-    </section>
-  );
+    <div>
+      <Booking />
+    </div>
+  )
 }

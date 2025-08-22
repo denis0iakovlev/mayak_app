@@ -1,0 +1,8 @@
+fly.toml
+.git/
+**/__pycache__/
+.envrc
+.env
+.venv/
+db
+db_model/__pycache__

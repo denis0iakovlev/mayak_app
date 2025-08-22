@@ -1,6 +1,7 @@
 /.git
 /node_modules
 .dockerignore
-.env
 Dockerfile
 fly.toml
+.env
+.enc.local

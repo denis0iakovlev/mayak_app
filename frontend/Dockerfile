@@ -28,9 +28,9 @@ RUN yarn install --frozen-lockfile --production=false
 
 # Copy application code
 COPY . .
-
+ENV NEXT_PUBLIC_API_URL="https://tennis-court-fastapi.fly.dev/"
 # Build application
-RUN npx next build --experimental-build-mode compile
+RUN yarn build
 
 # Remove development dependencies
 RUN yarn install --production=true
@@ -42,9 +42,9 @@ FROM base
 # Copy built application
 COPY --from=build /app /app
 
+RUN chmod +x /app/docker-entrypoint.js
 # Entrypoint sets up the container.
-ENTRYPOINT [ "/app/docker-entrypoint.js" ]
-
+#ENTRYPOINT [ "/app/docker-entrypoint.js" ]
 # Start the server by default, this can be overwritten at runtime
-EXPOSE 3000
-CMD [ "yarn", "run", "start" ]
+EXPOSE 81
+CMD [ "yarn", "start" ]
