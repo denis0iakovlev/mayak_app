@@ -6,6 +6,11 @@ backend/alembic\versions\__pycache__
 **.db
 **.sqlite
 **.lock
+**.env*
+fly.toml
+**/.dockerignore
+**/Dockerfile
+**/*.sh
 
 frontend/.next
 frontend/.vscode
