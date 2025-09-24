@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
-from utils.db_utils import get_db, get_user, get_booking
+from db.utils import get_user, get_booking
+from fapi_dependency import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
-from utils.db_model import User, Court, Booking
-from utils.srv_schemas import CourtCreateUpdate, UserOut,CourtOut, UserRoleUpdate, UpdateUserRoleResponse, BookingOut
-from typing import List, Literal, Optional
+from db.main_model import User, Court, Booking
+from schemas.srv_schemas import CourtCreateUpdate, UserOut,CourtOut, UserRoleUpdate, UpdateUserRoleResponse, BookingOut
+from typing import List,Optional
 from pydantic import BaseModel
 from datetime import date, time, datetime
 import phonenumbers
@@ -267,3 +268,9 @@ def get_all_booking(
         return res
     except Exception as e:
         return HTTPException(status_code=500,detail=f"Не удалось получить бронирования на {targetDate.isoformat()}")
+    
+# @router.get("/post_in_group")
+# def post_in_gtoup(
+#     db:Session = Depends(get_db),
+#     bot:Bot = Depends(get_)
+# )

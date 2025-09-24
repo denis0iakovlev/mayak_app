@@ -6,7 +6,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from utils.db_model import Base
+from db.main_model import Base
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -30,9 +30,9 @@ target_metadata = Base.metadata
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
-database_url = os.getenv("DATABASE_URL")
+database_url = os.getenv("SYNC_DATABASE_URL")
 if not database_url:
-    raise RuntimeError("DATABASE_URL not set in environment")
+    raise RuntimeError("SYNC_DATABASE_URL not set in environment")
 
 config = context.config
 config.set_main_option("sqlalchemy.url", database_url)

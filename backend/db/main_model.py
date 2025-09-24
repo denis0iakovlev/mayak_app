@@ -48,6 +48,15 @@ class Booking(Base):
     user_id = Column(Integer, ForeignKey("users.telegram_id"), nullable=False)
     court_id = Column(Integer, ForeignKey("courts.id"), nullable=False)
 
-
     user = relationship("User", back_populates="bookings")
     court = relationship("Court", back_populates="bookings")
+
+class ChatToPublic(Base):
+    __tablename__ = "postingchats"
+    chat_id=Column(BigInteger, primary_key=True, nullable=False, autoincrement=False)
+    editing_msg_id=Column(BigInteger, nullable=True)
+    post_scheduler=Column(Boolean, default=False)
+    can_send = Column(Boolean, nullable=False)
+    name_chat = Column(String, nullable=False)
+
+                   

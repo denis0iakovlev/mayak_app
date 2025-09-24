@@ -2,8 +2,14 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, Callable
 from Settings import settings
-from utils.scheduler.callbacks import reminder_job, change_status
+from scheduler.callbacks import reminder_job, change_status
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from aiogram import Bot
+from db.main_model import Booking
+from logger.logging import get_logger
+from bot.msg_creator import create_notify_booking
+
+logger = get_logger("scheduler.job")
 
 @dataclass
 class JobSpec:
@@ -40,39 +46,40 @@ class JobSpec:
 def _reminder_job_id(booking_id: int, start_at: datetime) -> str:
     return f"booking_reminder_{booking_id}_{int(start_at.timestamp())}"   
 
-def make_reminder_job_spec(booking_id: int, user_chat_id: int, start_at: datetime, bot:Bot) -> Optional[JobSpec]:
+def make_reminder_job_spec(booking: Booking, bot:Bot) -> Optional[JobSpec]:
     """Создаёт описание задачи-напоминания (без немедленной регистрации).
     Вернёт None, если ставить напоминание уже поздно.
     """
-    run_at = start_at - timedelta(minutes=settings.reminder_lead_time)
-    now_utc = datetime.now(settings.tzInfo)
-
-    job_id = _reminder_job_id(booking_id, start_at)
-
-    # if run_at <= now_utc:
-    #     return None
-
+    dateBook = datetime.fromisoformat(booking.date)
+    startDt = datetime.combine(dateBook, booking.start_time, tzinfo=settings.tzInfo)
+    run_at = startDt - timedelta(minutes=settings.reminder_lead_time)
+    logger.info('Напоминание сработает в %s}', run_at.strftime("%d/%m/%y %H:%M"))
+    job_id = _reminder_job_id(booking.id, startDt)
+    notify_message = create_notify_booking(booking)
     return JobSpec(
         id=job_id,
         func=reminder_job,
         trigger="date",
         run_date=run_at,
         kwargs={
-            "booking_id": booking_id,
-            "chat_id": user_chat_id,
-            "bot":bot
+            "bot":bot,
+            "user_id":booking.user_id,
+            "reminder_text":notify_message
         },
         jobstore="default",
         misfire_grace_time=600
     )
 
-def make_change_status_job_spec()->JobSpec:
+def make_change_status_job_spec(sessionmaker:async_sessionmaker[AsyncSession])->JobSpec:
     """Фабрика описания периодической задачи."""
     return JobSpec(
         id="change_status_job",
         func=change_status,
         trigger="interval",
         minutes=1,
+        kwargs={
+            "sessionmaker":sessionmaker
+        },
         jobstore="default",
         misfire_grace_time=600
     )

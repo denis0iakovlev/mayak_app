@@ -1,6 +1,6 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
-from utils.scheduler.jobs import JobSpec
+from scheduler.jobs import JobSpec
 from Settings import settings
 
 def create_scheduler()->AsyncIOScheduler:

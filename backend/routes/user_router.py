@@ -1,22 +1,22 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Path, Request
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
-from utils.db_utils import get_db, get_user, get_admins
-from utils.db_model import User, Booking, Court
-from utils.srv_schemas import BookingOut
-from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import select
+from db.utils import get_user, get_admins, get_bookings_last_5_days
+from fapi_dependency import get_bot, get_scheduler, get_db, get_session_maker
+from db.main_model import Booking, Court, ChatToPublic
+from schemas.srv_schemas import BookingOut
 from datetime import date, time, datetime
-from  pydantic import BaseModel 
+from pydantic import BaseModel 
+from bot.sendMsg import send_text, notify_users, edit_message
+from scheduler.jobs import make_reminder_job_spec
 from aiogram import Bot
-from utils.bot.sendMsg import send_text, notify_users
-from apscheduler.schedulers.background import BackgroundScheduler
-from utils.scheduler.jobs import make_reminder_job_spec
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from Settings import settings
+from logger.logging import get_logger
+from bot.msg_creator import create_booking_msg
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-def get_scheduler(request:Request)->BackgroundScheduler:
-    return request.app.state.scheduler
-
-def get_bot(request:Request)->Bot:
-    return request.app.state.bot
+logger = get_logger("route.user")
 
 class UserReq(BaseModel):
     user_id:int
@@ -30,7 +30,7 @@ class BookingCreate(UserReq):
     court_id: int
 @router.post("/booking/add")
 def create_booking(payload:BookingCreate,
-                   scheduler:BackgroundScheduler = Depends(get_scheduler),
+                   scheduler:AsyncIOScheduler = Depends(get_scheduler),
                    bot:Bot =  Depends(get_bot),
                    db:Session = Depends(get_db)
                    ):
@@ -54,7 +54,7 @@ def create_booking(payload:BookingCreate,
         delta = dtend - dtstart
         hour = delta.total_seconds() / (60*60)
         fee = 0
-        border = datetime.combine(datetime.today(), time(18,0))
+        border = datetime.combine(datetime.today(), time(17,0))
         if (user.is_trainer):
             fee = hour * 500
         elif dtend > border :
@@ -67,9 +67,8 @@ def create_booking(payload:BookingCreate,
             else:
                 fee = hour * 1000
         else:
-
             fee = hour * 800
-        print(f"booking {payload.date} from {payload.start_time} to {payload.end_time} cost {fee}")
+        logger.info("booking %s from %s to %s cost %d", payload.date,payload.start_time, payload.end_time, fee )
         # Создать бронь
         booking = Booking(
             date=payload.date,
@@ -81,16 +80,34 @@ def create_booking(payload:BookingCreate,
         )
         db.add(booking)
         db.commit()
+        db.refresh(booking)
+        stmt = select(Booking).options(
+            joinedload(Booking.court)
+        ).where(
+            Booking.id == booking.id 
+        )
+        res = db.execute(stmt).scalars().first()
         #отправить всем админам сообщение о новом бронировании
-        startDt = datetime.combine(payload.date, payload.start_time)
-        reminder_job = make_reminder_job_spec(booking_id=booking.id, user_chat_id=user.telegram_id, start_at=startDt, bot=bot)
+        reminder_job = make_reminder_job_spec(booking=res, bot=bot)
         if reminder_job != None :
             scheduler.add_job(**reminder_job.as_add_job_kwargs())
-            print(f"Добавлен подзадача по напоминанию по бронированию {booking.id}")
+            logger.info("Добавлен подзадача по напоминанию по бронированию %d",booking.id)
         admin_msg = f'Пользователь {user.first_name} забронировал корт {booking.court_id} на {payload.date.strftime("%d/%m/%Y")} \nВремя: {payload.start_time.strftime("%H:%M")} - {payload.end_time.strftime("%H:%M")}.\n Телефон: {user.phone_number}'
-        admins = get_admins( db)
+        #Оповестить админов о том что кто-то забронировал время
+        admins = get_admins(db)
         notify_users(bot=bot, text=admin_msg, user_ids =  [ad.telegram_id for ad in admins])
+        #Отправить сообщение пользователю что он забронировал время
         send_text(bot=bot, chat_id=user.telegram_id,text = f'Вы забронировали корт {booking.court_id} на {booking.date}\n Время: {payload.start_time.strftime("%H:%M")} - {payload.end_time.strftime("%H:%M")}')
+        #Обновить/создать сообщение в общей группе с перечислением бронирований
+        #Получить все группы в которые необходимо постить сообщения
+        stmt = select(ChatToPublic).where(ChatToPublic.can_send == True, ChatToPublic.post_scheduler == True, ChatToPublic.editing_msg_id != None)
+        res = db.execute(stmt).scalars().all()
+        if len(res) > 0:
+            #получить весь список бронирований за пять дней 
+            grouped_bookings = get_bookings_last_5_days(db=db)
+            text = create_booking_msg(grouped_bookings)
+            for chat in res:
+                edit_message(bot=bot, chat_id=chat.chat_id, message_id=chat.editing_msg_id, new_text=text)
     except Exception as e:
         return HTTPException(status_code=410, detail=str(e), headers={"error_msg": "Не удалось забронировать время"})
     return {"status": "ok", "booking_id": booking.id}
