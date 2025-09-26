@@ -7,7 +7,7 @@ from db.main_model import Booking, Court, ChatToPublic
 from schemas.srv_schemas import BookingOut
 from datetime import date, time, datetime
 from pydantic import BaseModel 
-from bot.sendMsg import send_text, notify_users, edit_message
+from bot.sendMsg import send_text, notify_users, update_message_in_groups
 from scheduler.jobs import make_reminder_job_spec
 from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -100,14 +100,7 @@ def create_booking(payload:BookingCreate,
         send_text(bot=bot, chat_id=user.telegram_id,text = f'Вы забронировали корт {booking.court_id} на {booking.date}\n Время: {payload.start_time.strftime("%H:%M")} - {payload.end_time.strftime("%H:%M")}')
         #Обновить/создать сообщение в общей группе с перечислением бронирований
         #Получить все группы в которые необходимо постить сообщения
-        stmt = select(ChatToPublic).where(ChatToPublic.can_send == True, ChatToPublic.post_scheduler == True, ChatToPublic.editing_msg_id != None)
-        res = db.execute(stmt).scalars().all()
-        if len(res) > 0:
-            #получить весь список бронирований за пять дней 
-            grouped_bookings = get_bookings_last_5_days(db=db)
-            text = create_booking_msg(grouped_bookings)
-            for chat in res:
-                edit_message(bot=bot, chat_id=chat.chat_id, message_id=chat.editing_msg_id, new_text=text)
+        update_message_in_groups(bot=bot, db=db)
     except Exception as e:
         return HTTPException(status_code=410, detail=str(e), headers={"error_msg": "Не удалось забронировать время"})
     return {"status": "ok", "booking_id": booking.id}
@@ -119,6 +112,7 @@ def get_all_unpaid_bookings(
         db:Session = Depends(get_db)
     ): 
     try:
+
         if status not in [0,1,2,3,4]:
             return HTTPException(status_code=404, detail="Передан не правильный статус")
         user = get_user(user_id, db)
@@ -160,12 +154,12 @@ def change_status_user_booking(
             msg = f'{user.first_name} - отменил бронирование на {booking.date} \nВремя: {booking.start_time.strftime("%H:%M")}-{booking.end_time.strftime("%H:%M")}'
             admins = get_admins(db)
             notify_users(bot, msg, [usr.telegram_id for usr in admins])
-            #
             db.delete(booking)
         else:
             booking.status = payload.new_status
-        
         db.commit()
+        if payload.new_status == 3:
+            update_message_in_groups(bot=bot, db=db)
         return {"status": "ok", "detail": "Статус изменен успешно"}
     except HTTPException as e:
         return e

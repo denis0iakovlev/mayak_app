@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from db.utils import get_user, get_booking
 from fapi_dependency import get_db
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
-from db.main_model import User, Court, Booking
-from schemas.srv_schemas import CourtCreateUpdate, UserOut,CourtOut, UserRoleUpdate, UpdateUserRoleResponse, BookingOut
+from sqlalchemy import and_, or_, select
+from db.main_model import User, Court, Booking, ChatToPublic
+from schemas.srv_schemas import CourtCreateUpdate, UserOut,CourtOut, UserRoleUpdate, UpdateUserRoleResponse, BookingOut, ChatToPosting
 from typing import List,Optional
 from pydantic import BaseModel
 from datetime import date, time, datetime
@@ -269,8 +269,27 @@ def get_all_booking(
     except Exception as e:
         return HTTPException(status_code=500,detail=f"Не удалось получить бронирования на {targetDate.isoformat()}")
     
-# @router.get("/post_in_group")
-# def post_in_gtoup(
-#     db:Session = Depends(get_db),
-#     bot:Bot = Depends(get_)
-# )
+@router.get("/postingchats", response_model=list[ChatToPosting])
+def post_in_gtoup(
+    admin_id:int = Query(...),
+    db:Session = Depends(get_db)
+    ):
+    try:
+        admin = get_admin_user(admin_id, db)
+        res = db.execute(select(ChatToPublic)).scalars().all()
+        return list(res)
+    except Exception as e:
+        return HTTPException(status_code=500, detail=f"{str(e)}")
+@router.delete("/postingchats")
+def delete_chat(admin_id:int=Query(...),
+                chat_id:int=Query(...),
+                db:Session = Depends(get_db)):
+    try:
+        admin = get_admin_user(admin_id, db)
+        chat = db.get(ChatToPublic, chat_id)
+        if chat is None:
+            raise Exception(f"Отсутсвует чат с id {chat_id}")
+        db.delete(chat)
+        return {"detail": "Чат для постинга расписания удален"}
+    except Exception as e:
+        return HTTPException(status_code=500, detail=f"{str(e)}")

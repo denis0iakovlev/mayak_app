@@ -68,3 +68,12 @@ class UserRoleUpdate(BaseModel):
 class UpdateUserRoleResponse(BaseModel):
     update_id:int
     new_role:str
+class ChatToPosting(BaseModel):
+    chat_id:int
+    editing_msg_id:Optional[int]
+    post_scheduler:bool
+    can_send:bool
+    name_chat:str
+    class Config:
+        from_attributes = True
+

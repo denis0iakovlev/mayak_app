@@ -10,5 +10,4 @@ anyio
 aiogram
 pydantic
 pydantic-settings
-logging
 aiosqlite

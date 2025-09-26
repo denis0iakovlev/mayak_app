@@ -18,7 +18,7 @@ async def create_bot()->Bot:
         raise RuntimeError("Не установлен токен бота")
     session =  AiohttpSession(api=TEST) if is_dev else  AiohttpSession()
     bot = Bot(token=token, session=session)
-    me =await bot.me()
+    me = await bot.me()
     log.info("Authorized as @%s (id=%s) | DEV=%s", me.username, me.id, is_dev)
     return bot
 

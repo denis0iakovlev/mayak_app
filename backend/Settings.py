@@ -11,7 +11,6 @@ class Settings(BaseSettings):
     sync_database_url:str = Field()
     bot_token: str =Field()
     bot_token_test: str =Field()
-    posting_group:str = Field()
     mode: str =Field()
     reminder_lead_time: int = Field(default=10)
     # APScheduler

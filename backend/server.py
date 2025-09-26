@@ -35,7 +35,8 @@ logger = get_logger("server.main")
 async def lifespan(app:FastAPI):
     logger.info("Выполняем подготовительную работу перед стартом сервере")
     #Начинаем с установки сессий (асинхронной и синхронной ) к БД
-    sync_url = settings.database_url.replace("+aiosqlite", "")
+    sync_url = settings.database_url
+    sync_url = sync_url.replace("+aiosqlite", "")
     logger.info("DB connection url sync=%s async=%s", sync_url, settings.database_url)
     app.state.async_engine, app.state.async_sessionmaker = create_async(settings.database_url)
     app.state.engine, app.state.sessionmaker = create_sync(url=sync_url, is_sqlite=sync_url.startswith("sqlite:"))
@@ -101,7 +102,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 #Подставление контекста для каждого запроса
-@app.middleware("http")
+@app.middleware("https")
 async def add_req_id(request:Request, call_next):
     token = req_id_var.set(str(uuid.uuid4()))
     try:
@@ -190,6 +191,6 @@ async def telegram_webhook(
     update = Update.model_validate(await request.json())
     result: TelegramMethod | None = await dp.feed_update(bot, update)
     # Если хендлер вернул метод — отдадим его прямо в ответ (экономит запрос к Bot API)
-    if result is not None:
-        return Response(result.model_dump_json(), media_type="application/json")
+    # if result is not None:
+    #     return Response(result.model_dump_json(), media_type="application/json")
     return {"ok": True}

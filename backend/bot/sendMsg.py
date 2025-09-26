@@ -3,8 +3,9 @@ from typing import List
 from aiogram import Bot
 from aiogram.types import ChatFullInfo, Message
 from sqlalchemy.orm import Session
-from db.main_model import Booking, Court
-import datetime
+from db.main_model import ChatToPublic
+from db.utils import get_bookings_last_5_days
+from bot.msg_creator import create_booking_msg
 from Settings import settings
 from sqlalchemy import select, asc
 from logger.logging import get_logger
@@ -33,12 +34,20 @@ def send_text(bot:Bot,chat_id: int, text: str):
 
 def notify_users(bot:Bot, text: str, user_ids:List[int] ):
     for usr_id in user_ids:
-        send_text(bot = bot, chat_id=usr_id,text= text)
+        try:
+            send_text(bot = bot, chat_id=usr_id,text= text)
+        except Exception as e:
+            logger.error(str(e))
 
-def post_bookings_in_group(bot:Bot, db:Session):
-    today_dat =  datetime.date.today().strftime("%Y-%m-%d")
-    stmt = select(Booking, Court)
-    send_text(bot, chat_id=-5017337454, text = "Тестовое сообщение")
+def update_message_in_groups(bot:Bot, db:Session):
+    stmt = select(ChatToPublic).where(ChatToPublic.can_send == True, ChatToPublic.post_scheduler == True, ChatToPublic.editing_msg_id != None)
+    res = db.execute(stmt).scalars().all()
+    if len(res) > 0:
+        #получить весь список бронирований за пять дней 
+        grouped_bookings = get_bookings_last_5_days(db=db)
+        text = create_booking_msg(grouped_bookings)
+        for chat in res:
+            edit_message(bot=bot, chat_id=chat.chat_id, message_id=chat.editing_msg_id, new_text=text)
     
 
 def get_chat_id(bot:Bot, group_name:str)->ChatFullInfo:
@@ -60,4 +69,6 @@ async def _edit_msg(bot:Bot, chat_id:int, msg_id:int, new_text:str):
     except Exception as e:
         print(e)
         logger.error(e)
+
+
 

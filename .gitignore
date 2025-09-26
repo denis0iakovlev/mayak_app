@@ -15,3 +15,5 @@ fly.toml
 frontend/.next
 frontend/.vscode
 frontend/node_modules
+backend/db_data/data.db-shm
+backend/db_data/data.db-wal
