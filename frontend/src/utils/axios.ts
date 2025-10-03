@@ -8,5 +8,4 @@ const apiSrv = axios.create({
         "Content-Type":"application/json"
     }
 })
-
 export default apiSrv;

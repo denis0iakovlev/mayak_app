@@ -48,7 +48,6 @@ export async function GetCourts(): Promise<CourtInfo[]> {
 export async function BookingChangeCourt(admin_id: number, booking_id: number, court_id: number) {
     try {
         const resp = apiSrv.patch("admin/booking/change_court", { admin_id, booking_id, court_id })
-
     } catch (e) {
         throw e;
     }

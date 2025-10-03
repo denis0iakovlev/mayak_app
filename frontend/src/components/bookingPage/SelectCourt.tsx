@@ -11,7 +11,8 @@ export type SelectCourtProps = {
 type CourtInfo = {
     id: number
     name: string
-    description: string
+    description: string,
+    is_active:boolean
 }
 
 export default function SelectCourt({defaultCourt, SetCourt }: SelectCourtProps) {
@@ -26,12 +27,9 @@ export default function SelectCourt({defaultCourt, SetCourt }: SelectCourtProps)
                     throw new Error("Не удалось получить данные о доступных кортах")
                 }
                 const data: CourtInfo[] = await res.json()
-                setCourts(data)
-                if (defaultCourt){
-                   SetCourt(defaultCourt) 
-                }else{
-                    SetCourt(data[0].id)
-                }
+                const activiteCourts = data.filter(c=>c.is_active)
+                setCourts(activiteCourts)
+                SetCourt(activiteCourts[0].id)
             } catch (error) {
                 setError((error as Error).message)
             } finally {

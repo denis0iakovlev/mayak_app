@@ -15,7 +15,6 @@ export default function AdminBookingPage() {
     const [error, SetError] = useState<string>("")
     const [bookings, SetBookings] = useState<AdminBooking[]>([])
     const [courts, SetCourts] = useState<CourtInfo[]>([]);
-    const [status, setStaus] = useState<number[]>([]);
     const user = useSignal(initData.user);
     //Получить бронирования на текущую дату
     useEffect(() => {
@@ -64,6 +63,7 @@ export default function AdminBookingPage() {
         SetSelDate(date)
         const bookList = await GetBookings(user!.id, date);
         SetBookings(bookList);
+        SetCourts(await GetCourts())
     }
     return (
         <div className="p-4">

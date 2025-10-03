@@ -9,8 +9,6 @@ const UserContext = createContext<MayakUser | null>(null)
 
 export const UserInitiliazer = ({ children }: { children: React.ReactNode }) => {
     const user = useSignal(initData.user);
-    const chat = useSignal(initData.chat);
-    const initDataAll = initDataChat(); 
     const [mUser, SetMUser] = useState<MayakUser | null>(null);
     const [isLoading, SetLoading] = useState<boolean>(false);
     const [error, SetError] = useState<string>("");

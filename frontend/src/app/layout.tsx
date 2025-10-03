@@ -4,6 +4,7 @@ import { Navbar } from "@/components/NavBar";
 import { Footer } from "@/components/Footer";
 import { TelegramInitializer } from "@/components/TelegramInitializer";
 import { UserInitiliazer } from "@/components/UserInitializer";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "Корты на Маяке",
@@ -25,15 +26,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col">
-        <TelegramInitializer>
-          <UserInitiliazer>
-            <Navbar />
-            <main className="flex-grow">
-              {children}
-            </main>
-            <Footer />
-          </UserInitiliazer>
-        </TelegramInitializer>
+        <Suspense fallback={<h1>Грузим грузим...</h1>}>
+          <TelegramInitializer>
+            <UserInitiliazer>
+              <Navbar />
+              <main className="flex-grow">
+                {children}
+              </main>
+              <Footer />
+            </UserInitiliazer>
+          </TelegramInitializer>
+        </Suspense>
       </body>
     </html>
   );
