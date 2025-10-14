@@ -28,7 +28,7 @@ class BookingCreate(UserReq):
     start_time: time
     end_time: time
     court_id: int
-@router.post("/booking/add")
+@router.post("/booking/add", response_model=BookingOut)
 def create_booking(payload:BookingCreate,
                    scheduler:AsyncIOScheduler = Depends(get_scheduler),
                    bot:Bot =  Depends(get_bot),
@@ -101,36 +101,23 @@ def create_booking(payload:BookingCreate,
         #Обновить/создать сообщение в общей группе с перечислением бронирований
         #Получить все группы в которые необходимо постить сообщения
         update_message_in_groups(bot=bot, db=db)
+        return booking
     except Exception as e:
         return HTTPException(status_code=410, detail=str(e), headers={"error_msg": "Не удалось забронировать время"})
-    return {"status": "ok", "booking_id": booking.id}
 #Получить все бронирования для определенного юзера 
 @router.get("/booking")
-def get_all_unpaid_bookings(
+def get_bookings_with_status(
         user_id:int = Query(...),
         status:int =  Query(...),
         db:Session = Depends(get_db)
     ): 
     try:
-
         if status not in [0,1,2,3,4]:
             return HTTPException(status_code=404, detail="Передан не правильный статус")
         user = get_user(user_id, db)
-        unpaid_bookings = db.query(Booking, Court.name).filter(Booking.court_id == Court.id, Booking.user_id == user_id, Booking.status == status).order_by(Booking.date.asc(), Booking.start_time.asc()).all()
-        res = []
-        for (book, courtName) in unpaid_bookings:
-            res.append(BookingOut(
-                court_id=book.court_id,
-                id=book.id,
-                dateBooking=book.date,
-                start_time=book.start_time,
-                end_time=book.end_time,
-                fee=book.fee if book.fee else 0,
-                court_name=courtName,
-                user_id=book.user_id,
-                status= book.status
-            )) 
-        return res
+        stmt = select(Booking).options(joinedload(Booking.court)).where(Booking.user_id == user_id, Booking.status == status ).order_by(Booking.date.asc(), Booking.start_time.asc())
+        bookings = db.execute(stmt).scalars().all()
+        return list(bookings)
     except Exception as e:
         return HTTPException(status_code=500, detail=e)
 #Удалить бронирование у определенного пользователя

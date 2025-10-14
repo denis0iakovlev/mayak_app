@@ -3,6 +3,7 @@ from db.utils import get_user, get_booking
 from fapi_dependency import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, select
+from sqlalchemy.orm import joinedload
 from db.main_model import User, Court, Booking, ChatToPublic
 from schemas.srv_schemas import CourtCreateUpdate, UserOut,CourtOut, UserRoleUpdate, UpdateUserRoleResponse, BookingOut, ChatToPosting
 from typing import List,Optional
@@ -99,20 +100,10 @@ def delete_court(admin_id:int= Query(...), court_id:int = Query(...), db:Session
 def get_all_users(admin_id:int = Query(...),db:Session = Depends(get_db)):
     try:
         get_admin_user(admin_id, db)
-        users = db.query(User).all()
-        result = [UserOut(
-            telegram_id=c.telegram_id,
-            last_name=c.last_name,
-            created_at=c.created_at.strftime("%Y-%m-%d"),
-            phone_number=c.phone_number,
-            role= "Админ" if c.role == 1 else "Любитель",
-            first_name=c.first_name,
-            username=c.username,
-            is_trainer=c.is_trainer if c.is_trainer  else False
-        ) for c in users]
-        return result
+        users = db.execute(select(User)).scalars().all()
+        return list(users)
     except Exception as e:
-        raise HTTPException(status_code=501, detail="Ошибка с БД")
+        raise HTTPException(status_code=501, detail=e)
 #Изменить роль для пользователя
 @router.patch("/user/role", response_model=UpdateUserRoleResponse)
 def updateRole(
@@ -233,7 +224,9 @@ def change_booking_price(payload:ChangeBookingPrice, db:Session=Depends(get_db))
 # Данные ответа
 class AdminBookingOut(BookingOut):
     user:UserOut
-@router.get("/booking/all", response_model=List[AdminBookingOut])
+    class Config:
+        from_attributes = True
+@router.get("/booking/all", response_model=list[AdminBookingOut])
 def get_all_booking(
     admin_id:int = Query(...),
     targetDate:date = Query(format=""),
@@ -241,31 +234,12 @@ def get_all_booking(
 ):
     try:
         get_admin_user(admin_id, db)
-        queryRes = db.query(Booking, User,Court.name).filter(Booking.user_id == User.telegram_id,Booking.court_id == Court.id,  Booking.date==targetDate).all()
-        res = []
-        for (book, bookUser, bookCourt) in queryRes:
-            res.append(AdminBookingOut(
-                court_id=book.court_id,
-                id=book.id,
-                dateBooking=book.date,
-                start_time=book.start_time,
-                end_time=book.end_time,
-                user_id=book.user_id,
-                court_name = bookCourt,
-                status= book.status,
-                fee=round(book.fee) if book.fee else 0,
-                user= UserOut(
-                    telegram_id=bookUser.telegram_id,
-                    created_at=bookUser.created_at.strftime("%Y-%m-%d"),
-                    first_name=bookUser.first_name,
-                    last_name=bookUser.last_name,
-                    username = bookUser.username,
-                    role= "Админ" if bookUser.role == 1 else "Любитель",
-                    phone_number=bookUser.phone_number,
-                    is_trainer=bookUser.is_trainer if bookUser.is_trainer else False
-                )
-            ))
-        return res
+        stmt = select(Booking).options(
+            joinedload(Booking.court),
+            joinedload(Booking.user)
+        ).where(Booking.date == targetDate).order_by(Booking.start_time.asc())
+        bookings = db.execute(stmt).scalars().all()
+        return list(bookings)
     except Exception as e:
         return HTTPException(status_code=500,detail=f"Не удалось получить бронирования на {targetDate.isoformat()}")
     

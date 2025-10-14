@@ -1,10 +1,8 @@
 'use client'
-import { Booking } from "@/components/Booking"
+import { Booking } from "@/features/booking/components/Booking"
 
 export default function Home() {
   return (
-    <div>
-      <Booking />
-    </div>
+    <Booking />
   )
 }

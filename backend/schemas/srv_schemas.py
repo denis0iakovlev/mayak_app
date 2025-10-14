@@ -18,34 +18,34 @@ class CourtOut(BaseModel):
     description:str
     is_active:bool
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class BookingOut(BaseModel):
     id: int
-    dateBooking: str
+    date: str
     start_time: time
     end_time: time
-    fee:int
-    court_id: int
-    court_name:str
-    user_id: int
     status: int
+    fee:float
+    signCancel:Optional[int]
+    court_id: int
+    court:CourtOut
+    user_id: int
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class UserOut(BaseModel):
     telegram_id: int
     first_name: str
     last_name: Optional[str]
-    username: Optional[str]
     phone_number:Optional[str]
-    created_at:Optional[str]
-    role: Optional[str]
+    username: Optional[str]
+    role: Optional[int]
     is_trainer:bool
-
+    created_at:Optional[datetime]
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class CourtCreateUpdate(BaseModel):

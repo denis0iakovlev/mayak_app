@@ -1,19 +1,21 @@
 'use client'
-import { adminBookingCols } from "@/components/admin/booking/admin-booking-cols";
+import { adminBookingCols } from "@/features/admin/columns/admin-booking-cols";
 import Calendar23 from "@/components/calendar-23";
-import { DataTable } from "@/components/DataTable/data-table";
-import BookingGroupItem from "@/components/UserBookings/BookingGroupItem";
-import { AdminBooking, CourtInfo, GetBookings, GetCourts } from "@/utils/adminService";
+import { DataTable } from "@/components/ui/data-table";
+import BookingGroupItem from "@/features/admin/components/BookingGroupItem";
 import { initData, useSignal } from "@telegram-apps/sdk-react";
 import { format } from "date-fns";
 import { useEffect, useState } from "react"
+import { BookingInfoWithUser, CourtInfo } from "@/schemas/Schemas";
+import { GetBookings } from "@/services/adminService";
+import { get_active_courts } from "@/services/generalService";
 
 
 export default function AdminBookingPage() {
     const [isLoading, SetLoading] = useState<boolean>(false);
     const [selDate, SetSelDate] = useState<Date>(new Date());
     const [error, SetError] = useState<string>("")
-    const [bookings, SetBookings] = useState<AdminBooking[]>([])
+    const [bookings, SetBookings] = useState<BookingInfoWithUser[]>([])
     const [courts, SetCourts] = useState<CourtInfo[]>([]);
     const user = useSignal(initData.user);
     //Получить бронирования на текущую дату
@@ -35,7 +37,7 @@ export default function AdminBookingPage() {
         const getCourts = async () => {
             SetLoading(true);
             try {
-                const courts = await GetCourts();
+                const courts = await get_active_courts();
                 const aviable = courts.filter(court => court.is_active);
                 SetCourts(aviable);
             } catch (e) {
@@ -63,7 +65,7 @@ export default function AdminBookingPage() {
         SetSelDate(date)
         const bookList = await GetBookings(user!.id, date);
         SetBookings(bookList);
-        SetCourts(await GetCourts())
+        SetCourts(await get_active_courts())
     }
     return (
         <div className="p-4">

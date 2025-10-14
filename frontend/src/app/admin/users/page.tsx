@@ -1,14 +1,15 @@
 'use client'
 
-import generateUsersCols from "@/components/admin/users/users-cols";
-import { DataTable } from "@/components/DataTable/data-table";
-import BookingGroupItem from "@/components/UserBookings/BookingGroupItem";
-import { GetAllUsers, User } from "@/utils/adminService"
+import generateUsersCols from "@/features/admin/columns/users-cols";
+import { DataTable } from "@/components/ui/data-table";
+import BookingGroupItem from "@/features/admin/components/BookingGroupItem";
 import { initData, useSignal } from "@telegram-apps/sdk-react";
 import { useEffect, useState } from "react"
+import { GetAllUsers } from "@/services/adminService";
+import { UserInfo } from "@/schemas/Schemas";
 
 export default function AdminUsersPage() {
-    const [users, SetUsers] = useState<User[]>([]);
+    const [users, SetUsers] = useState<UserInfo[]>([]);
     const user = useSignal(initData.user)
 
     useEffect(() => {

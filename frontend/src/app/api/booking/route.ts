@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
             time_slots.endSlots.push(booked_slot.booked_end);
             let start = parse(booked_slot.booked_start, "HH:mm", new Date());
             let end = parse(booked_slot.booked_end, "HH:mm", new Date());
-            //Добавить только промежатку между
+            //Добавить только промежутки между стартом и концом 
             end = subMinutes(end, 30);
             while (start < end) {
                 start = addMinutes(start, 30)

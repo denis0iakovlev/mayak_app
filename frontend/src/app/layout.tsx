@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { Navbar } from "@/components/NavBar";
-import { Footer } from "@/components/Footer";
-import { TelegramInitializer } from "@/components/TelegramInitializer";
-import { UserInitiliazer } from "@/components/UserInitializer";
+import { Navbar } from "@/components/layouts/NavBar";
+import { Footer } from "@/components/layouts/Footer";
+import { TelegramInitializer } from "@/components/context/TelegramInitializer";
+import { UserInitiliazer } from "@/components/context/UserInitializer";
 import { Suspense } from "react";
+import Loader from "@/components/layouts/Loader";
 
 export const metadata: Metadata = {
   title: "Корты на Маяке",
@@ -26,17 +27,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col">
-        <Suspense fallback={<h1>Грузим грузим...</h1>}>
+        <main className="flex-grow">
           <TelegramInitializer>
             <UserInitiliazer>
               <Navbar />
-              <main className="flex-grow">
+              <Suspense fallback={<Loader message="Получаем информацию о бронированиях..." />}>
                 {children}
-              </main>
+              </Suspense>
               <Footer />
             </UserInitiliazer>
           </TelegramInitializer>
-        </Suspense>
+        </main>
       </body>
     </html>
   );

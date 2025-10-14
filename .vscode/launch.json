@@ -6,9 +6,9 @@
     "configurations": [
         {
             "name": "Attach to Chrome",
-            "url": "http://localhost:81",
+            "url": " http://127.0.0.1:81/",
             "request": "attach",
-            "type": "vscode-edge-devtools.debug",
+            "type": "chrome",
             "webRoot": "${workspaceFolder}/frontend"
         },
         

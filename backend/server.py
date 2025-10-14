@@ -168,16 +168,7 @@ def addUser(
     finally:
         if not user:
             return HTTPException(status_code=500, detail="Неудалось зарегистрировать пользователя")
-        return UserOut(
-            telegram_id=user.telegram_id,
-            role= "Админ" if user.role == 1 else "Любитель",
-            created_at=user.created_at.strftime("%Y-%m-%d"),
-            first_name=user.first_name,
-            is_trainer= user.is_trainer if  user.is_trainer else False,
-            last_name=user.last_name,
-            phone_number=user.phone_number,
-            username=user.username,
-        )    
+        return user
     
 @app.post("/telegram/webhook")
 async def telegram_webhook(
