@@ -30,15 +30,13 @@ export default function RootLayout({
         <main className="flex-grow">
           <TelegramInitializer>
             <UserInitiliazer>
-              <Navbar />
-              <Suspense fallback={<Loader message="Получаем информацию о бронированиях..." />}>
+                <Navbar />
                 {children}
-              </Suspense>
-              <Footer />
             </UserInitiliazer>
           </TelegramInitializer>
         </main>
+        <Footer />
       </body>
-    </html>
+    </html >
   );
 }

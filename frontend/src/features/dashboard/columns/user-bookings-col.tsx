@@ -1,12 +1,12 @@
 import { ColumnDef } from "@tanstack/react-table"
-import { Booking } from "@/services/generalService"
 import { Checkbox } from "../../../components/ui/checkbox"
-import { differenceInMinutes, format, minutesToHours } from "date-fns"
+import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+import { BookingInfo } from "@/schemas/Schemas"
 
 const headerClass = cn("text-md font-stretch-50%")
 
-export const unpaidBookingColumns: ColumnDef<Booking>[] = [
+export const userBookingsCols: ColumnDef<BookingInfo>[] = [
     {
         id: "select",
         header: ({ table }) => (
@@ -30,7 +30,7 @@ export const unpaidBookingColumns: ColumnDef<Booking>[] = [
     {
         id: "date",
         header: () => <div className={headerClass}>Дата</div>,
-        accessorFn: row => format(row.dateBooking, "dd/MM/yyyy"),
+        accessorFn: row => format(row.date, "dd.MM.yyyy"),
     },
     {
         id: "time-slot",
@@ -42,7 +42,9 @@ export const unpaidBookingColumns: ColumnDef<Booking>[] = [
     {
         id: "court",
         header: () => <div className={headerClass}>Корт</div>,
-        accessorKey:"court_name"
+         accessorFn: row => {
+            return row.court.name;
+        }
     },
     {
         id: "summ",

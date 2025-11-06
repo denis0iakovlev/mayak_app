@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, BigInteger, String, Boolean, ForeignKey, DateTime, UniqueConstraint, Time
+from sqlalchemy import Column,Index, Integer, BigInteger, String, Boolean, ForeignKey, DateTime, UniqueConstraint, Time
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
 
@@ -29,6 +29,26 @@ class Court(Base):
     created_at = Column(DateTime, default=datetime.now)
     reactivate_at = Column(DateTime, nullable=True)
     bookings = relationship("Booking", back_populates="court")
+    grids = relationship("PriceGrid",
+                            back_populates="court",
+                            cascade="all, delete-orphan",
+                            order_by="PriceGrid.time_start"  
+                        )
+
+class PriceGrid(Base):
+    __tablename__ ="price_grid"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    time_start = Column(Time, nullable=False)
+    time_end = Column(Time, nullable=False)
+    price = Column(Integer, nullable=False)
+    price_trainer = Column(Integer, nullable=False)
+    court_id = Column(Integer, ForeignKey("courts.id", ondelete="CASCADE"),nullable=False)
+    court = relationship("Court",back_populates="grids" ) 
+
+    __table_args__ = (
+        UniqueConstraint("court_id", "time_start", "time_end", name="uq_pricegrid_court_slot"),
+        Index("ix_pricegrid_court_id", "court_id")
+    )
 
 class Booking(Base):
     __tablename__ = "bookings"

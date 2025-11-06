@@ -1,15 +1,16 @@
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { UpdateUser, User } from "@/utils/adminService";
+import { UpdateUser } from "@/services/adminService";
 import { ColumnDef } from "@tanstack/react-table";
-import { toast } from "sonner"
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SendHorizonalIcon } from "lucide-react";
+import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { Switch } from "@/components/ui/switch";
+import { UserInfo } from "@/schemas/Schemas";
 
-const headerClass = cn("text-md font-stretch-50%")
+const headerClass = cn("text-md font-stretch-50%, mx-auto, block")
 
 const header = (title: string, className: string) => {
     return (
@@ -17,7 +18,7 @@ const header = (title: string, className: string) => {
     )
 }
 
-export default function generateUsersCols(admin_id: number): ColumnDef<User>[] {
+export default function users_columns(admin_id: number): ColumnDef<UserInfo>[] {
     return (
         [
             {
@@ -34,15 +35,15 @@ export default function generateUsersCols(admin_id: number): ColumnDef<User>[] {
             },
             {
                 id: "phoneNumber",
-                header: () => header("Номер", headerClass),
+                header: () => header("Номер", cn(headerClass)),
                 cell: ({ row }) => {
                     const [phNumber, SetNumber] = useState<string>(row.original.phone_number || "")
                     return (
                         <Input
-                            className="min-w-10 w-max-16 text-sm font-stretch-100%"
+                            className="min-w-30 text-sm"
                             value={phNumber}
                             type="tel"
-                            placeholder="+7 (___) ___ - __ - __"
+                            placeholder="+7(___)-___-__-__"
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                 SetNumber(e.target.value);
                             }}
@@ -70,8 +71,12 @@ export default function generateUsersCols(admin_id: number): ColumnDef<User>[] {
                     }
                     return (
                         <>
-                            <div className="flex flex-row justify-start min-w-32">
-                                <Input type="text" className="text-sm" value={val} onChange={handleOnChange} onBlur={handleOnBlur} />
+                            <div className="flex flex-row justify-start w-min">
+                                <Input type="text"
+                                    className="text-sm min-w-28"
+                                    value={val}
+                                    onChange={handleOnChange}
+                                    onBlur={handleOnBlur} />
                             </div>
                         </>
                     )
@@ -81,13 +86,13 @@ export default function generateUsersCols(admin_id: number): ColumnDef<User>[] {
                 id: "role",
                 header: () => header("Админ", headerClass),
                 cell: ({ row }) => {
-                    const [isAdmin, setIsAdmin] = useState(row.original.role.toLowerCase() === "админ")
+                    const [isAdmin, setIsAdmin] = useState(row.original.role === 1)
                     return (
                         <Switch
                             checked={isAdmin}
                             onCheckedChange={(checked) => {
                                 setIsAdmin(checked);
-                                row.original.role = checked ? "Админ" : "Булка";
+                                checked ? "Админ" : "Булка";
                             }} />
                     )
                 }
@@ -116,7 +121,7 @@ export default function generateUsersCols(admin_id: number): ColumnDef<User>[] {
                                 user_id: origin.telegram_id,
                                 is_trainer: origin.is_trainer,
                                 phone_number: origin.phone_number,
-                                role: origin.role.toLocaleLowerCase() === "админ" ? 1 : 0,
+                                role: origin.role,
                                 username: origin.username
                             }
                             await UpdateUser(upUser)
@@ -131,7 +136,7 @@ export default function generateUsersCols(admin_id: number): ColumnDef<User>[] {
                                     description: () => (
                                         <div>
                                             <p>Имя игрока {origin.username || "Не указано"}</p>
-                                            <p>Админ: {origin.role.toLocaleLowerCase() === "админ" ? "Да" : "Нет"}</p>
+                                            <p>Админ: {origin.role === 1 ? "Да" : "Нет"}</p>
                                             <p>Тренер: {origin.is_trainer ? "Да" : "Нет"}</p>
                                             <p>Телефон: {origin.phone_number || "Не указан"}</p>
                                         </div>)

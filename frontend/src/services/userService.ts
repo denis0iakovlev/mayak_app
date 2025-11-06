@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 import apiSrv from "../api/axios";
-import {BookingPayloadScheme, BookingScheme, UserScheme } from "../schemas/Schemas";
+import {BookingInfo, BookingPayloadScheme, BookingScheme, UserScheme } from "../schemas/Schemas";
 import { AxiosRequestConfig } from "axios";
 import { User } from "@telegram-apps/sdk-react";
 import { format } from "date-fns";
@@ -9,13 +9,13 @@ export type Booking = z.infer<typeof BookingScheme>;
 export type MayakUser = z.infer<typeof UserScheme>;
 export type BookingPayload = z.infer<typeof BookingPayloadScheme>
 
-export async function GetUserBooking(user_id: number, typeBooking: "upcoming" | "unpaid") {
+export async function GetUserBooking(user_id: number, status:number):Promise<BookingInfo[]> {
     try {
         console.log(user_id)
         const param: AxiosRequestConfig = {
             params: {
                 user_id: user_id,
-                status: typeBooking === "unpaid" ? 2 : 0
+                status: status
             }
         }
         const resp = await apiSrv.get(`user/booking`, param);

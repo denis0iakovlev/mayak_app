@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Path
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from db.utils import get_user, get_booking
 from fapi_dependency import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import joinedload
 from db.main_model import User, Court, Booking, ChatToPublic
-from schemas.srv_schemas import CourtCreateUpdate, UserOut,CourtOut, UserRoleUpdate, UpdateUserRoleResponse, BookingOut, ChatToPosting
+from schemas.srv_schemas import CreateCourtPayload, UserOut,UpdateCourtPayload, UserRoleUpdate, UpdateUserRoleResponse, BookingOut, ChatToPosting
 from typing import List,Optional
 from pydantic import BaseModel
 from datetime import date, time, datetime
@@ -25,9 +25,9 @@ def get_admin_user(
         raise Exception(f"Пользователь не является админом")
     return admin_user
 #Добавить новый корт в БД
-@router.post("/court/add")
+@router.post("/court")
 def add_new_court(
-    payload:CourtCreateUpdate,
+    payload:CreateCourtPayload,
     db:Session = Depends(get_db)     
     ):
     court = Court(
@@ -39,6 +39,28 @@ def add_new_court(
     db.commit()
     db.refresh
     return {"status":"ok", "detail":"Корт был добавлен"}
+
+
+@router.put("/court")
+def open_court(
+    admin_id:int,
+    payload:UpdateCourtPayload,
+    db:Session =Depends(get_db)
+):
+    try:
+        get_admin_user(admin_id, db)
+        court = db.get(Court, payload.id)
+        if court is None:
+            raise Exception("Корт с таким id отсутствует")
+        update_court = payload.model_dump(exclude_none=True)
+        for key, val in update_court.items():
+            setattr(court, key, val)
+        db.commit()
+        db.refresh(court)
+        return {"status":"success"}
+    except Exception as e:
+        return HTTPException(status_code=500, detail=str(e))
+
 #Закрыть корт и удалить все бронирования
 # Close court request
 class CloseCourtReq(BaseModel):

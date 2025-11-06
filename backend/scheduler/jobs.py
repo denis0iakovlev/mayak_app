@@ -47,7 +47,7 @@ def _reminder_job_id(booking_id: int, start_at: datetime) -> str:
     return f"booking_reminder_{booking_id}_{int(start_at.timestamp())}"   
 
 def make_reminder_job_spec(booking: Booking, bot:Bot) -> Optional[JobSpec]:
-    """Создаёт описание задачи-напоминания (без немедленной регистрации).
+    """Создаёт напоминание за некоторое время до начала.
     Вернёт None, если ставить напоминание уже поздно.
     """
     dateBook = datetime.fromisoformat(booking.date)

@@ -1,9 +1,9 @@
 import { AxiosRequestConfig } from "axios";
 import apiSrv from "@/api/axios";
 import { format } from "date-fns";
-import {BookingInfoWithUser, BookingWithUserScheme, UserInfo, UserScheme } from "@/schemas/Schemas";
+import { BookingInfoWithUser, BookingWithUserScheme, UpdateCourtPayload, UserInfo, UserScheme } from "@/schemas/Schemas";
 
-export async function GetBookings(admin_id: number, targetDate: Date): Promise<BookingInfoWithUser[]> {
+export async function get_admin_booking_list(admin_id: number, targetDate: Date): Promise<BookingInfoWithUser[]> {
     const params: AxiosRequestConfig = {
         params: {
             admin_id: admin_id,
@@ -89,4 +89,16 @@ export async function ChangePrice(payload: { admin_id: number, booking_id: numbe
     }
 }
 
+export async function update_court_info(admin_id: number, payload: UpdateCourtPayload) {
+    try {
+        const params: AxiosRequestConfig = {
+            params: {
+                admin_id
+            }
+        }
+        await apiSrv.put(`admin/court`,payload, params )
+    } catch (e) {
+        throw e;
+    }
+}
 

@@ -43,18 +43,12 @@ async def on_my_chat_member(upd:ChatMemberUpdated, bot:Bot, session:AsyncSession
         can_send, status = (False, "removed")
 
     db_chat = await session.get(ChatToPublic, chat.id)
-
     if added or rights_changed:
         if chat.type in  ["group", "supergroup"]:
             if db_chat and not can_send:
                 await update_or_create_posting_chat(chat, False, session )
                 logger.info("Chat %s change status  to send post. %s -> %s ", chat.title, old_status, new_status)
-                admins = (await session.execute(select(User.telegram_id).where(User.role == 1))).scalars().all()
-                for id in list(admins):
-                    try:
-                        await _send_text_async(bot,id, f"Бот был лишен прав на публикацию расписаний в группе {chat.title}")
-                    except Exception as e:
-                        logger.error(str(e))
+                await notify_admins(session,bot, f"Бот был лишен прав на публикацию расписаний в группе {chat.title}")
         elif chat.type == "channel":
             logger.info("Обновление статуса постинга в каналах.")
             db_chat = await update_or_create_posting_chat(chat, is_posting=can_send, session=session)
@@ -62,6 +56,7 @@ async def on_my_chat_member(upd:ChatMemberUpdated, bot:Bot, session:AsyncSession
                 logger.info("Постинг бронирований в канале %s - создан")
                 msg = await bot.send_message(chat_id=chat.id, text=NEW_MSG_TEXT)
                 db_chat.editing_msg_id = msg.message_id
+                await notify_admins(session,bot, f"Бот был добавлен в канал {chat.title} - для постина расписания")
             elif not can_send:
                 db_chat.editing_msg_id = None
                 logger.info("Постинг бронирований в канале %s - прекращен")
@@ -69,16 +64,10 @@ async def on_my_chat_member(upd:ChatMemberUpdated, bot:Bot, session:AsyncSession
 
     if removed:
         if db_chat:
-            db_chat.can_send = False
-            db_chat.post_scheduler = False
+            await session.delete(db_chat)
             await session.commit()
             logger.info("DB: chat %s marked as cannot send(removed)", chat.title)
-            admins = (await session.execute(select(User.telegram_id).where(User.role == 1))).scalars().all()
-            for id in list(admins):
-                try:
-                    await _send_text_async(bot,id, f"Бот был удален из группы {chat.title}")
-                except Exception as e:
-                    logger.error(str(e))
+            await notify_admins(session,bot, f"Бот был удален из канала {chat.title}")
         else:
             pass
 
@@ -114,12 +103,12 @@ async def update_or_create_posting_chat(tg_chat:Chat,is_posting:bool, session:As
     chat = await session.get(ChatToPublic, tg_chat.id)
     if not chat:
         logger.info("Группа не  найдена, добавляем ", )
-        addChat = ChatToPublic(chat_id=tg_chat.id,
+        chat = ChatToPublic(chat_id=tg_chat.id,
                                 post_scheduler=is_posting,
                                 can_send=is_posting,
                                 name_chat=tg_chat.title
             )
-        session.add(addChat)
+        session.add(chat)
         await session.commit()
         logger.info("Added new posting chat name=%s id=%d", tg_chat.title, tg_chat.id)
     else:
@@ -163,5 +152,11 @@ async def add_post(m:Message, bot:Bot, session:AsyncSession):
     await bot.send_message(m.chat.id, f"Группа {m.chat.title} - исключена из групп для публикации бронирований")
 
 
-
+async def notify_admins(session:AsyncSession, bot:Bot, text:str ):
+    admins = (await session.execute(select(User.telegram_id).where(User.role == 1))).scalars().all()
+    for id in list(admins):
+        try:
+            await _send_text_async(bot,id, text)
+        except Exception as e:
+            logger.error(str(e))
     

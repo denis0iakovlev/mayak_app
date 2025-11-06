@@ -54,20 +54,11 @@ def create_booking(payload:BookingCreate,
         delta = dtend - dtstart
         hour = delta.total_seconds() / (60*60)
         fee = 0
-        border = datetime.combine(datetime.today(), time(17,0))
+        border = datetime.combine(datetime.today(), time(23,59))#Выключаем
+        cost_of_hour = 1400
         if (user.is_trainer):
-            fee = hour * 500
-        elif dtend > border :
-            if dtstart < border:
-                deltaBefore = border - dtstart
-                hourBefore = deltaBefore.total_seconds() / (60*60)
-                deltaAfter = dtend - border
-                hourAfter = deltaAfter.total_seconds() / (60*60)
-                fee = hourBefore * 800 + hourAfter*1000
-            else:
-                fee = hour * 1000
-        else:
-            fee = hour * 800
+            cost_of_hour = 1000    
+        fee = hour * cost_of_hour
         logger.info("booking %s from %s to %s cost %d", payload.date,payload.start_time, payload.end_time, fee )
         # Создать бронь
         booking = Booking(

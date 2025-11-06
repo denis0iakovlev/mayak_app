@@ -1,19 +1,20 @@
 'use client'
-
 import React, { useState } from "react";
-import { Collapsible, CollapsibleContent } from "../ui/collapsible";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { CollapsibleTrigger } from "@radix-ui/react-collapsible";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
-type BookingsListProps = {
+type UpDownCollapseProps = {
     title: string,
-    bookList: Readonly<React.ReactNode>
+    collapsible: Readonly<React.ReactNode>
 }
 
-
-export default function BookingGroupItem({ title, bookList }: BookingsListProps) {
+export default function UpDownCollapse({ title, collapsible }: UpDownCollapseProps) {
     const [isOpen, SetOpen] = useState<boolean>(true);
+    if (collapsible === null){
+        return null;
+    }
     return (
         <Collapsible
             open={isOpen}
@@ -31,7 +32,7 @@ export default function BookingGroupItem({ title, bookList }: BookingsListProps)
                 </CollapsibleTrigger>
             </div>
             <CollapsibleContent>
-                {bookList}
+                {collapsible}
             </CollapsibleContent>
         </Collapsible>
     )

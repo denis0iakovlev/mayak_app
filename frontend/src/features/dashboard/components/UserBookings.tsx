@@ -1,144 +1,133 @@
 'use client'
-
-import { initData, useSignal } from "@telegram-apps/sdk-react"
 import { useEffect, useState } from "react";
-import { GetUserBooking, Booking, SetBookingStatus } from "@/services/generalService";
-import { MainButtonParams, SetMainButton } from "@/utils/tgUtils";
-import BookingGroupItem from "./BookingGroupItem";
-import { DataTable } from "../DataTable/data-table";
-import { unpaidBookingColumns } from "../../features/dashboard/columns/unpaid-booking-columns";
-import { upcomingBookingCols } from "../../features/dashboard/columns/upcoming_booking_columns";
+import { BookingInfo } from "@/schemas/Schemas";
+import UpDownCollapse from "../../../components/ui/custom/UpDownCollaps";
+import { DataTable } from "@/components/ui/custom/data-table";
+import { userBookingsCols } from "../columns/user-bookings-col";
 import Link from "next/link";
-import AcceptDialog from "../../features/admin/components/accept-dialog";
-
-type BookingGroup = Record<string, Booking[]>;
+import AcceptDialog from "@/components/ui/accept-dialog";
+import { useUserBooking } from "../hooks/useUserBooking";
+import { initData, isMainButtonMounted, mountMainButton, useSignal } from "@telegram-apps/sdk-react";
+import { SetMainButton } from "@/utils/tgUtils";
+import Loader from "@/components/layouts/Loader";
+import { MAIN_BUTTON_DELETE, MAIN_BUTTON_MAIN } from "@/styles/styles";
 
 export function UserBooking() {
     const user = useSignal(initData.user);
-    const [isLoading, SetIsLoading] = useState<boolean>(false);
-    const [rowSelection, SetRowSelection] = useState<Object>({});
-    const [bookingList, SetBookingList] = useState<BookingGroup>({});
-    const [paymentSumm, SetPaymentSumm] = useState<number>(0);
+    if (!user) {
+        throw new Error("Пользователь не аутентифицирован.")
+    }
+    if (!isMainButtonMounted()) {
+        mountMainButton()
+    }
+    const userBookings = useUserBooking(user.id);
+    
+    if (userBookings.isEmpty) {
+        <div className="w-full h-screen">
+            <Link href={"/"} className="mx-auto px-4 py-3 rounded-lg hover:bg-orange-100 hover:text-amber-700 my-auto text-xl text-orange-500 w-max block border shadow-2xl text-center">
+                Забронировать корт !
+            </Link>
+        </div>
+    }
     const [open, setOpen] = useState<boolean>(false);
     const mainButtonClick = async () => {
-        setOpen(true);
+        if (userBookings.tableNum === 2 ){
+            setOpen(true);
+        }else{
+            await userBookings.ChangeStatusOnPicked(3);
+        }
     }
     useEffect(() => {
-        updateBookingList()
-    }, []);
-    useEffect(() => {
-        console.log(rowSelection);
-        const keys = Object.keys(rowSelection)
-        if (keys.length > 0) {
-            let summFee = 0;
-            for (const key of keys) {
-                const inx = parseInt(key)
-                if (inx > -1 && inx < bookingList["unpaid"].length) {
-                    summFee += bookingList["unpaid"][inx].fee;
-                }
-            }
-            SetPaymentSumm(summFee);
-
-            const userBookingParams: MainButtonParams = {
-                text: "Оплатить",
-                isEnabled: true,
-                isVisible: true
-            }
-            SetMainButton(userBookingParams, mainButtonClick)
+        SetMainButton({
+            isEnabled: true,
+            isVisible: userBookings.isSelected,
+            text: userBookings.tableNum === 0 ? `Удалить` : `Подтвердить платеж ${userBookings.fee} руб` ,
+            backgroundColor: userBookings.tableNum === 0 ? MAIN_BUTTON_DELETE : MAIN_BUTTON_MAIN
+        },
+            mainButtonClick);
+    }, [userBookings.picked])
+    const changeCurrentTable = (numTable: 0 | 2, rows: {}) => {
+        userBookings.SetTableNum(numTable);
+        if (numTable === 0) {
+            userBookings.setUnpaidRows({})
+            userBookings.setUpcomigRows(rows)
         } else {
-            const userBookingParams: MainButtonParams = {
-                text: "Оплатить",
-                isEnabled: true,
-                isVisible: false
-            }
-            SetMainButton(userBookingParams, mainButtonClick)
-        }
-    }, [rowSelection])
-
-    const handleAcceptPayments = async () => {
-        setOpen(false);
-        const keys = Object.keys(rowSelection);
-        for (const key of keys) {
-            const inx = parseInt(key)
-            if (inx > -1 && inx < bookingList["unpaid"].length) {
-                const booking = bookingList["unpaid"][inx];
-                await SetBookingStatus(booking.user_id, booking.id, 1);
-            }
-        }
-        window.location.reload();
-    }
-
-    const updateBookingList = async () => {
-        SetIsLoading(true);
-        let bookingGroups: BookingGroup = {};
-        try {
-            bookingGroups["upcoming"] = await GetUserBooking(user!.id, 'upcoming');
-            bookingGroups["unpaid"] = await GetUserBooking(user!.id, 'unpaid');
-        } catch (e) {
-            throw e;
-        } finally {
-            SetBookingList(bookingGroups);
-            SetIsLoading(false)
+            userBookings.setUnpaidRows(rows)
+            userBookings.setUpcomigRows({})
         }
     }
-    if (isLoading) {
-        return (
-            <div className="mx-auto mt-20 w-full">
-                Данные загружаются...
-            </div>
-        )
+    const rowIndex = (row: BookingInfo, index: number) => {
+        return String(row.id);
     }
-
-    if (Object.keys(bookingList).length === 0) {
-        return (
-            <div className="my-10 p-4">
-                <h6>У вас пока что нет бронирований</h6>
-            </div>
-        )
+    if (userBookings.isLoading){
+        let text = "Удаляем бронирования";
+        if (userBookings.tableNum === 2 ){
+            text = "Проводим оплату"
+        }
+        return <Loader message={text}/>
     }
     return (
         <div className="w-full mt-8 flex flex-col gap-4">
             {
-                bookingList["unpaid"].length ?
-                    <BookingGroupItem
+                userBookings.unpaidBookings.length ?
+                    <UpDownCollapse
                         title="Завершенные"
-                        bookList={
-                            <DataTable columns={unpaidBookingColumns} data={bookingList["unpaid"]} rowSelection={rowSelection} setRowSelection={SetRowSelection} />
+                        collapsible={
+                            <DataTable
+                                columns={userBookingsCols}
+                                data={userBookings.unpaidBookings}
+                                rowSelection={userBookings.unpaidRows}
+                                setRowSelection={
+                                    (rows: {}) => {
+                                        changeCurrentTable(2, rows)
+                                    }
+                                }
+                                getRowId={rowIndex}
+                            />
                         }
                     /> : null
             }
             {
-                bookingList["upcoming"].length ?
-                    <BookingGroupItem
-                        title="Мои бронирования"
-                        bookList={<DataTable columns={upcomingBookingCols} data={bookingList["upcoming"]} />}
-                    />
-                    : null
-            }
-            {
-                !bookingList["upcoming"].length && !bookingList["unpaid"].length &&
-                <div className="w-full h-screen">
-                    <Link href={"/"} className="mx-auto px-4 py-3 rounded-lg hover:bg-orange-100 hover:text-amber-700 my-auto text-xl text-orange-500 w-max block border shadow-2xl text-center">
-                        Забронировать корт !
-                    </Link>
-                </div>
+                userBookings.upcomingBookings.length ?
+                <UpDownCollapse
+                    title="Предстоящие"
+                    collapsible={
+                        <DataTable
+                            columns={userBookingsCols}
+                            data={userBookings.upcomingBookings}
+                            rowSelection={userBookings.upcomingRows}
+                            setRowSelection={(rows: {}) => {
+                                changeCurrentTable(0, rows)
+                            }}
+                            getRowId={rowIndex}
+                        />
+                    }
+                />
+                :null
+
             }
             <AcceptDialog
                 isOpen={open}
                 cancelCallback={() => setOpen(false)}
-                okCallback={handleAcceptPayments}
+                okCallback={async() => { 
+                    await userBookings.ChangeStatusOnPicked(1)
+                    setOpen(false);
+                }}
                 text={
-                <div>
-                    <h6 className="my-4">{`Подтвердить платеж на сумму ${paymentSumm} руб`}</h6>
-                    <p className="font-light text-sm p-4 border rounded-lg">
-                        <span className="text-normal inline-block my-2 font-normal ">Реквизиты:</span> <br/>
-                        Номер телефона: +79034701125 <br/>
-                        Ф.И.О: Мария М.<br/>
-                        Банк: Озон Банк
-                    </p>
-                </div>}
+                    <div>
+                        <h6 className="my-4">{`Подтвердить платеж на сумму ${userBookings.fee} руб`}</h6>
+                        <p className="font-light text-sm p-4 border rounded-lg">
+                            <span className="text-normal inline-block my-2 font-normal ">Реквизиты:</span><br />
+                            Номер телефона: +79282702071 <br />
+                            Ф.И.О: Александр Н.<br />
+                            Банк: Озон Банк
+                        </p>
+                    </div>}
                 title="Оплата корта"
             />
+            {
+                userBookings.isLoading ?<Loader message="hello"/> :null
+            }
         </div>
     )
 

@@ -4,7 +4,7 @@ from db.main_model import Booking
 from Settings import settings
 from bot.sendMsg import _send_text_async
 from aiogram import Bot
-from sqlalchemy import select
+from sqlalchemy import select, or_, and_
 from logger.logging import get_logger
 
 logger = get_logger("scheduler.callbacks")
@@ -16,8 +16,11 @@ async def change_status(sessionmaker:async_sessionmaker[AsyncSession]):
             #Обойти все бронирования 
             current_time = now.time().replace(microsecond=0)
             res = await session.execute(select(Booking).where(
-                Booking.date == now.date().isoformat(),
-                Booking.start_time <= current_time
+                or_(Booking.date < now.date().isoformat(), 
+                    and_(
+                        Booking.date == now.date().isoformat(),
+                        Booking.start_time < current_time
+                    ))
             ))
             bookings = res.scalars().all()
             for book in bookings:

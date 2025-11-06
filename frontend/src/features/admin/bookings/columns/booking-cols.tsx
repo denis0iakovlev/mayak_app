@@ -1,11 +1,12 @@
 import { cn } from "@/lib/utils";
-import { AdminBooking, BookingChangeCourt, BookingChangeStatus, ChangePrice, CourtInfo } from "@/utils/adminService";
+import { BookingChangeCourt, BookingChangeStatus, ChangePrice } from "@/services/adminService";
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import AcceptDialog from "@/components/ui/accept-dialog";
 import { Input } from "@/components/ui/input";
+import { CourtInfo, BookingInfoWithUser } from "@/schemas/Schemas";
 
 const headerClass = cn("text-md font-stretch-50%")
 
@@ -16,14 +17,14 @@ const statusList = [
         color: "bg-blue-300"
     },
     {
-        code: 2,
-        label: "Не оплачено",
-        color: "bg-yellow-300"
-    },
-    {
         code: 1,
         label: "Оплачено",
         color: "bg-green-200"
+    },
+    {
+        code: 2,
+        label: "Не оплачено",
+        color: "bg-yellow-300"
     },
     {
         code: 3,
@@ -32,7 +33,7 @@ const statusList = [
     },
 ]
 
-export function adminBookingCols(adminId: number, courts: CourtInfo[]): ColumnDef<AdminBooking>[] {
+export function bookings_columns(adminId: number, courts: CourtInfo[]): ColumnDef<BookingInfoWithUser>[] {
     return (
         [
             {
@@ -48,7 +49,7 @@ export function adminBookingCols(adminId: number, courts: CourtInfo[]): ColumnDe
             },
             {
                 id: "phone_number",
-                header: () => <div className={headerClass}>Номер </div>,
+                header: () => <div className={cn(headerClass, "w-fit")}>Номер </div>,
                 accessorFn: (data) => data.user.phone_number || "Не указан"
             },
             {
@@ -59,11 +60,10 @@ export function adminBookingCols(adminId: number, courts: CourtInfo[]): ColumnDe
             {
                 id: "court",
                 header: () => <div className={headerClass}>Корт</div>,
-                accessorKey: "court_name",
                 cell: ({ row }) => {
                     const original = row.original;
-                    const [court, setCourt] = useState<CourtInfo>(courts.find(c => c.name === original.court_name)!);
-                    const [prevCourt, setPrevCourt] = useState<CourtInfo>(courts.find(c => c.name === original.court_name)!);
+                    const [court, setCourt] = useState<CourtInfo|undefined>(courts.find(c => c.id === original.court.id));
+                    const [prevCourt, setPrevCourt] = useState<CourtInfo>(courts.find(c => c.id === original.court.id)!);
                     const [open, setOpen] = useState<boolean>(false);
                     const bookId = row.getValue("bookId") as number;
                     const handleChange = (value: string) => {
@@ -75,7 +75,7 @@ export function adminBookingCols(adminId: number, courts: CourtInfo[]): ColumnDe
                     }
                     const handleAccept = async (isAccept: boolean) => {
                         setOpen(false)
-                        if (isAccept) {
+                        if (isAccept && court) {
                             await BookingChangeCourt(adminId, bookId, court.id)
                             setPrevCourt(court)
                         } else {
@@ -84,7 +84,7 @@ export function adminBookingCols(adminId: number, courts: CourtInfo[]): ColumnDe
                     }
                     return (
                         <>
-                            <Select value={court.name} onValueChange={handleChange} >
+                            <Select value={court?.name} onValueChange={handleChange} >
                                 <SelectTrigger className={cn("text-xs py-0",)}>
                                     <SelectValue placeholder="Изменить корт" className="text-xs" />
                                 </SelectTrigger>
@@ -92,8 +92,8 @@ export function adminBookingCols(adminId: number, courts: CourtInfo[]): ColumnDe
                                     <SelectGroup>
                                         {
                                             courts.map((court) => (
-                                                <SelectItem className="text-xs" key={court.id} value={court.name}>{court.name}</SelectItem>
-                                            ))
+                                            <SelectItem className="text-xs" key={court.id} value={court.name}>{court.name}</SelectItem>
+                                            ))  
                                         }
                                     </SelectGroup>
                                 </SelectContent>
@@ -145,7 +145,7 @@ export function adminBookingCols(adminId: number, courts: CourtInfo[]): ColumnDe
                                 isOpen={open}
                                 cancelCallback={() => handleDialog(false)}
                                 okCallback={() => handleDialog(true)}
-                                text={`Вы помяняли цену бронирования c ${row.original.fee} на ${price} , принять изменения ?`}
+                                text={`Вы поменяли цену бронирования c ${row.original.fee} на ${price} , принять изменения ?`}
                                 title="Цена бронирования"
                             />
                         </>
@@ -162,7 +162,6 @@ export function adminBookingCols(adminId: number, courts: CourtInfo[]): ColumnDe
                     const [isOpen, SetOpen] = useState(false);
                     const bookId = row.getValue("bookId") as number;
                     const handleSelectedStatus = async (value: string) => {
-
                         SetOpen(true);
                         const st = statusList.find(s => s.label === value);
                         if (st)

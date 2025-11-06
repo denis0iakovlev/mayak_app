@@ -48,11 +48,17 @@ class UserOut(BaseModel):
         from_attributes = True
 
 
-class CourtCreateUpdate(BaseModel):
+class CreateCourtPayload(BaseModel):
     admin_id:int
     name:str
-    description:Optional[str] = "Теннисный корт"
-    isActive:Optional[bool] = True
+    description:str | None = "Теннисный корт"
+    is_active:bool | None = None
+class UpdateCourtPayload(BaseModel):
+    id:int
+    name:str |None = None
+    description:str | None = None
+    is_active:bool | None = None
+
 
 class CourtUpadte(BaseModel):
     id:int

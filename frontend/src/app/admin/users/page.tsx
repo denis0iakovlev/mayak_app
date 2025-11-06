@@ -1,31 +1,32 @@
 'use client'
 
-import generateUsersCols from "@/features/admin/columns/users-cols";
-import { DataTable } from "@/components/ui/data-table";
-import BookingGroupItem from "@/features/admin/components/BookingGroupItem";
+import users_columns from "@/features/admin/columns/users-cols";
+import { DataTable } from "@/components/ui/custom/data-table";
 import { initData, useSignal } from "@telegram-apps/sdk-react";
 import { useEffect, useState } from "react"
 import { GetAllUsers } from "@/services/adminService";
 import { UserInfo } from "@/schemas/Schemas";
+import UpDownCollapse from "@/components/ui/custom/UpDownCollaps";
+import useSWR from "swr";
+import { useMayakUser } from "@/components/context/UserInitializer";
 
 export default function AdminUsersPage() {
-    const [users, SetUsers] = useState<UserInfo[]>([]);
-    const user = useSignal(initData.user)
+    const user = useSignal(initData.user);
+    if (!user) {
+        throw new Error("Пользователь не аутентифицирован.")
+    }
+    const { data: users, mutate } = useSWR(["get-admin-users", user?.id], ([, user_id]: [string, number]) => {
+        return GetAllUsers(user_id)
+    }, { suspense: true })
 
-    useEffect(() => {
-        const getUsers = async () => {
-            if (user) {
-                SetUsers(await GetAllUsers(user.id));
-            }
-        }
-        getUsers();
-    },[])
     return (
         <div className="p-2">
             <h6 className="my-4 text-lg font-semibold font-stretch-75%">Все пользователи системы</h6>
-            <BookingGroupItem
+            <UpDownCollapse
                 title="Все любители кортов маяк"
-                bookList={<DataTable columns={generateUsersCols(user!.id)} data={users} />}
+                collapsible={
+                    <DataTable columns={users_columns(user!.id)} data={users} />
+                }
             />
         </div>
     )
