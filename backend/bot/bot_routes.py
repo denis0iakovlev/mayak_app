@@ -56,7 +56,7 @@ async def on_my_chat_member(upd:ChatMemberUpdated, bot:Bot, session:AsyncSession
                 logger.info("Постинг бронирований в канале %s - создан")
                 msg = await bot.send_message(chat_id=chat.id, text=NEW_MSG_TEXT)
                 db_chat.editing_msg_id = msg.message_id
-                await notify_admins(session,bot, f"Бот был добавлен в канал {chat.title} - для постина расписания")
+                await notify_admins(session,bot, f"Бот был добавлен в канал {chat.title} - для публикации расписания")
             elif not can_send:
                 db_chat.editing_msg_id = None
                 logger.info("Постинг бронирований в канале %s - прекращен")

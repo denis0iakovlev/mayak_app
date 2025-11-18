@@ -52,6 +52,7 @@ def update_message_in_groups(bot:Bot, db:Session):
                 new_msg = edit_message(bot=bot, chat_id=chat.chat_id, message_id=chat.editing_msg_id, new_text=text)
                 chat.editing_msg_id = new_msg.message_id
             except Exception as e:
+                chat.editing_msg_id = None
                 for id in list(admins):
                     try:
                         send_text(bot,id, f"Группа {chat.name_chat} - {str(e)}")
@@ -72,11 +73,12 @@ async def _get_chat_id(bot:Bot, group_name:str)->ChatFullInfo:
 def edit_message(bot:Bot, chat_id:int, message_id:int, new_text:str)->Message:
     return anyio.from_thread.run(_edit_msg, bot, chat_id, message_id, new_text)
 
-async def _edit_msg(bot:Bot, chat_id:int, msg_id:int, new_text:str):
+async def _edit_msg(bot:Bot, chat_id:int, msg_id:int|None, new_text:str):
     try:
-        is_deleted:bool = await bot.delete_message( chat_id=chat_id, message_id=msg_id)
-        if not is_deleted:
-            raise Exception("Не удалось удалить предыдущее сообщение расписания")
+        if msg_id is not None:
+            is_deleted:bool = await bot.delete_message( chat_id=chat_id, message_id=msg_id)
+            if not is_deleted:
+                raise Exception("Не удалось удалить предыдущее сообщение расписания")
         new_edit_message:Message = await bot.send_message(chat_id=chat_id, text=new_text)
         if new_edit_message is None:
             raise Exception("Не удалось опубликовать расписание")

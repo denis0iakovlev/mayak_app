@@ -55,7 +55,6 @@ export function get_courts_admin_columns(
             id: "range-open",
             header: "Время работы",
             cell: ({ row }) => {
-                row.original.grids
                 const [range, setRange] = useState<number[]>([0, 12, 23.5])
                 const deleteClick = (inx: number) => {
                     if (range.length === 2)
