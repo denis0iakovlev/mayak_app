@@ -4,7 +4,7 @@ from sqlalchemy import select
 from db.utils import get_user, get_admins, get_bookings_last_5_days
 from fapi_dependency import get_bot, get_scheduler, get_db, get_session_maker
 from db.main_model import Booking, Court, ChatToPublic
-from schemas.srv_schemas import BookingOut
+from schemas.main_schemes import BookingOut
 from datetime import date, time, datetime
 from pydantic import BaseModel 
 from bot.sendMsg import send_text, notify_users, update_message_in_groups

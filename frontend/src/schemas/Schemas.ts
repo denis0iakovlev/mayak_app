@@ -41,13 +41,12 @@ export const CourtScheme = z.object({
   id: z.number(),
   name: z.string(),
   description: z.string().optional(),
-  is_active: z.boolean(),
-  grids:z.array(RangeSchema).default([])
+  is_active: z.boolean()
 })
 export type CourtInfo = z.infer<typeof CourtScheme>;
 //Схема для обновления кортов
 export const UpdateCourtScheme =  CourtScheme.partial()
-export type UpdateCourtPayload = z.infer<typeof UpdateCourtScheme>;
+export type UpdateCourtPayload =  Omit<z.infer<typeof UpdateCourtScheme>, "id">;
 // Основная схема
 export const BookingScheme = z.object({
   id: z.number(),

@@ -20,6 +20,14 @@ def get_booking(booking_id, db:Session)->Booking:
 def get_admins(db:Session)->List[User]:
     admins = db.query(User).filter(User.role == 1).all()
     return admins
+def get_admin_user(
+        telegram_id:int,
+        db:Session
+)->User:
+    admin_user = get_user(telegram_id=telegram_id, db=db)
+    if admin_user.role != 1:
+        raise Exception(f"Пользователь не является админом")
+    return admin_user
 
 def get_bookings_last_5_days(db:Session)->dict[str, dict[str:list[Booking]]]:
     now = datetime.now(settings.tzInfo)

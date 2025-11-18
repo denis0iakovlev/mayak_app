@@ -89,14 +89,14 @@ export async function ChangePrice(payload: { admin_id: number, booking_id: numbe
     }
 }
 
-export async function update_court_info(admin_id: number, payload: UpdateCourtPayload) {
+export async function update_court_info(admin_id: number,court_id:number, payload: UpdateCourtPayload) {
     try {
         const params: AxiosRequestConfig = {
             params: {
                 admin_id
             }
         }
-        await apiSrv.put(`admin/court`,payload, params )
+        await apiSrv.patch(`admin/courts/${court_id}`,payload, params )
     } catch (e) {
         throw e;
     }

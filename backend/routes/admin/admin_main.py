@@ -1,122 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
-from db.utils import get_user, get_booking
+from db.utils import get_user, get_booking, get_admin_user
 from fapi_dependency import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import joinedload
 from db.main_model import User, Court, Booking, ChatToPublic
-from schemas.srv_schemas import CreateCourtPayload, UserOut,UpdateCourtPayload, UserRoleUpdate, UpdateUserRoleResponse, BookingOut, ChatToPosting
+from schemas.main_schemes import CreateCourtPayload, UserOut, UserRoleUpdate, UpdateUserRoleResponse, BookingOut, ChatToPosting
 from typing import List,Optional
 from pydantic import BaseModel
-from datetime import date, time, datetime
+from datetime import date
 import phonenumbers
+from routes.admin.admin_court import router as court_router;
 
 class AdminBase(BaseModel):
     admin_id:int
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
-def get_admin_user(
-        telegram_id:int,
-        db:Session = Depends(get_db)
-)->User:
-    admin_user = get_user(telegram_id=telegram_id, db=db)
-    if admin_user.role != 1:
-        raise Exception(f"Пользователь не является админом")
-    return admin_user
-#Добавить новый корт в БД
-@router.post("/court")
-def add_new_court(
-    payload:CreateCourtPayload,
-    db:Session = Depends(get_db)     
-    ):
-    court = Court(
-        name=payload.name,
-        description=payload.description,
-        is_active=payload.isActive
-    )
-    db.add(court)
-    db.commit()
-    db.refresh
-    return {"status":"ok", "detail":"Корт был добавлен"}
-
-
-@router.put("/court")
-def open_court(
-    admin_id:int,
-    payload:UpdateCourtPayload,
-    db:Session =Depends(get_db)
-):
-    try:
-        get_admin_user(admin_id, db)
-        court = db.get(Court, payload.id)
-        if court is None:
-            raise Exception("Корт с таким id отсутствует")
-        update_court = payload.model_dump(exclude_none=True)
-        for key, val in update_court.items():
-            setattr(court, key, val)
-        db.commit()
-        db.refresh(court)
-        return {"status":"success"}
-    except Exception as e:
-        return HTTPException(status_code=500, detail=str(e))
-
-#Закрыть корт и удалить все бронирования
-# Close court request
-class CloseCourtReq(BaseModel):
-    court_id:int
-    admin_id:int
-    target_date:date
-    start_time:time
-    end_time:time
-@router.patch("/court/close")
-def closeCourt(
-    payload:CloseCourtReq,
-    db:Session = Depends(get_db),
-):
-    try:
-        admin_user = get_admin_user(payload.admin_id, db)
-        court = db.query(Court).filter(Court.id == payload.court_id).first()
-        if not court:
-            raise Exception(f"Нет корта с id {payload.court_id}")
-        bookings_to_delete = db.query(Booking).filter(Booking.court_id == payload.court_id,
-                                                      Booking.date == payload.target_date,
-                                                      or_(
-                                                          and_(
-                                                              Booking.start_time >= payload.start_time,
-                                                              Booking.end_time <=payload.end_time
-                                                              ),
-                                                              and_(
-                                                                  Booking.start_time <= payload.end_time,
-                                                                  Booking.end_time >= payload.start_time
-                                                              )
-                                                      )
-                                                      ).all()
-        count = len(bookings_to_delete)
-        for book in bookings_to_delete:
-            db.delete(book)
-        court.is_active = False
-        court.reactivate_at = datetime.combine(payload.target_date, payload.end_time)
-        db.commit()
-        db.refresh(court)
-        return {"status":"ok", "detail":f"Удалено {count} записей на {payload.target_date} с {payload.start_time} по {payload.end_time}"}
-    except Exception as e:
-        return HTTPException(status_code=510, detail=str(e))
-
-#Удалить корт из БД
-@router.delete("/court")
-def delete_court(admin_id:int= Query(...), court_id:int = Query(...), db:Session = Depends(get_db)):
-    try:
-        admin = get_admin_user(admin_id, db)
-        court = db.query(Court).filter_by(id = court_id).first()
-        if not court:
-            raise HTTPException(status_code=504, detail="В БД нет корта с переданным id")
-        db.delete(court)
-        db.commit()
-        db.refresh()
-        return {"status": "ok", "detail": "Корт был удален"}
-    except Exception as e:
-         return HTTPException(status_code=510, detail=f"Не удалось удалить корт из БД.Текст ошибки: {str(e)}")
 #Получить всех пользователей
 @router.get("/user/all", response_model=List[UserOut])
 def get_all_users(admin_id:int = Query(...),db:Session = Depends(get_db)):

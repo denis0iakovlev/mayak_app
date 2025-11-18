@@ -4,10 +4,11 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from fapi_dependency import get_db
 from db.utils import get_user
-from schemas.srv_schemas import CourtOut, SlotResponse, BookedSlot, UserOut
+from schemas.main_schemes import CourtOut, SlotResponse, BookedSlot, UserOut
 from pydantic import BaseModel
-from routes.admin_route import router as admin_routes
+from routes.admin.admin_main import router as admin_routes
 from routes.user_router import router as user_routes
+from routes.admin.admin_court import router as admin_courts_routes
 from fastapi.middleware.cors import CORSMiddleware
 from aiogram.types import Update
 from aiogram.methods import TelegramMethod
@@ -112,6 +113,7 @@ async def add_req_id(request:Request, call_next):
 #Добадение роутов
 app.include_router(admin_routes)
 app.include_router(user_routes)
+app.include_router(admin_courts_routes)
 #События
 
 #Получить данные о корте

@@ -46,25 +46,14 @@ class UserOut(BaseModel):
     created_at:Optional[datetime]
     class Config:
         from_attributes = True
-
+#Admin court schema
 
 class CreateCourtPayload(BaseModel):
     admin_id:int
     name:str
     description:str | None = "Теннисный корт"
     is_active:bool | None = None
-class UpdateCourtPayload(BaseModel):
-    id:int
-    name:str |None = None
-    description:str | None = None
-    is_active:bool | None = None
 
-
-class CourtUpadte(BaseModel):
-    id:int
-    name:Optional[str]
-    description:Optional[str]
-    isActive:Optional[bool]
 #
 class UserRoleUpdate(BaseModel):
     admin_telegram_id:int

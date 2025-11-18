@@ -30,7 +30,8 @@ export default function SelectCourt({ court, courtList, SetCourt }: SelectCourtP
                     <SelectGroup >
                         {
                             courtList.map((courtInfo, inx) => (
-                                <SelectItem key={courtInfo.id * 1.5} value={courtInfo.name} >{courtInfo.name} <span className="text-left text-xs italic text-muted-foreground">({courtInfo.description})</span></SelectItem>
+                                <SelectItem key={courtInfo.id * 1.5} value={courtInfo.name} >{courtInfo.name} {courtInfo.description ? <span className="text-left text-xs italic text-muted-foreground">({courtInfo.description})</span> : null
+                            }</SelectItem>
                             ))
                         }
                     </SelectGroup>
