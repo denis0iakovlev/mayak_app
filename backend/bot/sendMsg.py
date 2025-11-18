@@ -3,7 +3,7 @@ from typing import List
 from aiogram import Bot
 from aiogram.types import ChatFullInfo, Message
 from sqlalchemy.orm import Session
-from db.main_model import ChatToPublic
+from db.main_model import ChatToPublic, User
 from db.utils import get_bookings_last_5_days
 from bot.msg_creator import create_booking_msg
 from Settings import settings
@@ -42,12 +42,22 @@ def notify_users(bot:Bot, text: str, user_ids:List[int] ):
 def update_message_in_groups(bot:Bot, db:Session):
     stmt = select(ChatToPublic).where(ChatToPublic.can_send == True, ChatToPublic.post_scheduler == True, ChatToPublic.editing_msg_id != None)
     res = db.execute(stmt).scalars().all()
+    admins =  db.execute(select(User.telegram_id).where(User.role == 1)).scalars().all()
     if len(res) > 0:
         #получить весь список бронирований за пять дней 
         grouped_bookings = get_bookings_last_5_days(db=db)
         text = create_booking_msg(grouped_bookings)
         for chat in res:
-            edit_message(bot=bot, chat_id=chat.chat_id, message_id=chat.editing_msg_id, new_text=text)
+            try:
+                new_msg = edit_message(bot=bot, chat_id=chat.chat_id, message_id=chat.editing_msg_id, new_text=text)
+                chat.editing_msg_id = new_msg.message_id
+            except Exception as e:
+                for id in list(admins):
+                    try:
+                        send_text(bot,id, f"Группа {chat.name_chat} - {str(e)}")
+                    except Exception as e:
+                        logger.error(str(e))  
+        db.commit()
     
 
 def get_chat_id(bot:Bot, group_name:str)->ChatFullInfo:
@@ -59,16 +69,22 @@ async def _get_chat_id(bot:Bot, group_name:str)->ChatFullInfo:
     except Exception as e:
         print(e)
 
-def edit_message(bot:Bot, chat_id:int, message_id:int, new_text:str):
+def edit_message(bot:Bot, chat_id:int, message_id:int, new_text:str)->Message:
     return anyio.from_thread.run(_edit_msg, bot, chat_id, message_id, new_text)
 
 async def _edit_msg(bot:Bot, chat_id:int, msg_id:int, new_text:str):
     try:
-        edited_msg:Message = await bot.edit_message_text(text=new_text, chat_id=chat_id, message_id=msg_id)
-        edited_msg.answer("обновление списка бронирований прошло успешно")
+        is_deleted:bool = await bot.delete_message( chat_id=chat_id, message_id=msg_id)
+        if not is_deleted:
+            raise Exception("Не удалось удалить предыдущее сообщение расписания")
+        new_edit_message:Message = await bot.send_message(chat_id=chat_id, text=new_text)
+        if new_edit_message is None:
+            raise Exception("Не удалось опубликовать расписание")
+        return new_edit_message
     except Exception as e:
         print(e)
         logger.error(e)
+        raise  e
 
 
 

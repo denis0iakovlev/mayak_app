@@ -2,10 +2,13 @@ from db.main_model import Booking, User
 from Settings import settings
 import datetime
 
+week_days_ru = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+
 def create_booking_msg(grouped:dict[str,dict[str,list[Booking]]])->str:
     result = "Расписание бронирований\n"
     for key, value in grouped.items():
-        result += f'🎾{datetime.datetime.fromisoformat(key).strftime("%d/%m/%Y")}🎾:\n'
+        dt = datetime.datetime.fromisoformat(key)
+        result += f'🎾{week_days_ru[dt.weekday()]} {dt.strftime("%d/%m/%Y")} 🎾:\n'
         for court_name, bookings in value.items():
             result += f'\t{court_name}\n'
             for book in bookings:

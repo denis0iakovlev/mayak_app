@@ -71,7 +71,6 @@ async def on_my_chat_member(upd:ChatMemberUpdated, bot:Bot, session:AsyncSession
         else:
             pass
 
-
 async def bot_can_send_in_chat(bot:Bot, chat_id:int)-> Tuple[bool, str]:
     """
         Проверяем что бот может (имеет права) писать в чат

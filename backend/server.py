@@ -27,6 +27,7 @@ from bot.core import create_bot, create_dispatcher, delete_webhook_if_set, start
 from bot.bot_mw import LogContextMiddleware, DBSessionMiddleWare
 from bot.bot_routes import r as main_bot_router
 from fapi_dependency import get_bot, get_dispatcher
+#Настроить локаль
 #Настроить логирование
 setup_logging()
 
