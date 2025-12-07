@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from datetime import datetime
-from db.main_model import Booking
+from model_db.main_model import Booking
 from Settings import settings
-from bot.sendMsg import _send_text_async
+from utils.send_message_utils import _send_text_async
 from aiogram import Bot
 from sqlalchemy import select, or_, and_
 from logger.logging import get_logger

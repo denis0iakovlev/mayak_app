@@ -1,33 +1,26 @@
-from fastapi import FastAPI, HTTPException, Query, Depends, Request, Header, Response
-from db.main_model import Court, User, Booking
-from typing import List, Optional
-from sqlalchemy.orm import Session
-from fapi_dependency import get_db
-from db.utils import get_user
-from schemas.main_schemes import CourtOut, SlotResponse, BookedSlot, UserOut
-from pydantic import BaseModel
-from routes.admin.admin_main import router as admin_routes
-from routes.user_router import router as user_routes
-from routes.admin.admin_court import router as admin_courts_routes
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from aiogram.types import Update
-from aiogram.methods import TelegramMethod
 from contextlib import asynccontextmanager, suppress
 import asyncio
-from scheduler.scheduler import create_scheduler, registry_job
+from scheduler.scheduler import create_scheduler
 from scheduler.jobs import make_change_status_job_spec
-from aiogram import Bot, Dispatcher
 from Settings import settings
 from bot.bot_mw import LogContextMiddleware
 import uuid
 from logger.context import req_id_var
 from logger.logging import setup_logging, get_logger
-from db.core import create_async, create_sync
+from utils.core import create_async, create_sync
 from bot.core import create_bot, create_dispatcher, delete_webhook_if_set, start_polling_background, set_webhook
 from bot.bot_mw import LogContextMiddleware, DBSessionMiddleWare
 from bot.bot_routes import r as main_bot_router
-from fapi_dependency import get_bot, get_dispatcher
-#Настроить локаль
+#routes
+from routes.user.router import router as user_routes
+from routes.share.router import router as share_router
+from routes.admin.courts.route import router as admin_courts_routes
+from routes.admin.user.route import router as admin_user_route
+from routes.admin.booking.route import router as admin_booking_route
+from routes.admin.tgChats.router import router as tg_chat_router
+from routes.telegram.route import router as webhook_router
 #Настроить логирование
 setup_logging()
 
@@ -94,7 +87,6 @@ async def lifespan(app:FastAPI):
         await app.state.engine.dispose()
         await app.state.async_engine.dispose()
         
-
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
@@ -112,79 +104,11 @@ async def add_req_id(request:Request, call_next):
     finally:
         req_id_var.reset(token)
 #Добадение роутов
-app.include_router(admin_routes)
 app.include_router(user_routes)
 app.include_router(admin_courts_routes)
-#События
+app.include_router(admin_booking_route)
+app.include_router(admin_user_route)
+app.include_router(tg_chat_router)
+app.include_router(share_router)
+app.include_router(webhook_router)
 
-#Получить данные о корте
-@app.get("/courts/info")
-def get_court_info(court_id:int = Query(...), db:Session = Depends(get_db)):
-    court = db.query(Court).filter(Court.id == court_id).first()
-    if not court:
-        raise HTTPException(status_code=503, detail=f"Корта с id {court_id} - не существует")
-    return court
-#Забронировать время на корте
-@app.get("/courts/all", response_model=List[CourtOut])
-def get_courts_list(db:Session = Depends(get_db)):
-    courts_list = db.query(Court).all()
-    return [CourtOut(id= c.id, name = c.name, description=c.description, is_active= c.is_active  ) for c in courts_list]
-#Получить бронирование на определенном корте
-@app.get("/booking", response_model= SlotResponse)
-def get_occuped_data(
-    date:str = Query(..., regex="^\d{4}-\d{2}-\d{2}$"),
-    court_id:int = Query(...),
-    db:Session = Depends(get_db)
-):
-    bookings = db.query(Booking).filter(Booking.date == date, Booking.court_id == court_id, Booking.status != 3).all()
-    booking_slot = [BookedSlot(booked_start= b.start_time.strftime("%H:%M"), booked_end = b.end_time.strftime("%H:%M")) for b in bookings]
-    return SlotResponse(
-        booked_slots=booking_slot,
-        court_id=court_id,
-        date=date
-    )
-#Добавить пользователя в БД
-class UserReq (BaseModel):
-    telegram_id:int 
-    first_name: str
-    last_name: Optional[str] = None
-    username: Optional[str] = None
-
-@app.post("/check_user", response_model=UserOut)
-def addUser(
-    payload:UserReq,
-    db:Session = Depends(get_db)
-):
-    user = None
-    try:
-        user = get_user(payload.telegram_id, db)
-    except Exception as e:
-        user = User(
-                telegram_id=payload.telegram_id,
-                first_name=payload.first_name,
-                last_name=payload.last_name,
-                username=payload.username,
-            )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-    finally:
-        if not user:
-            return HTTPException(status_code=500, detail="Неудалось зарегистрировать пользователя")
-        return user
-    
-@app.post("/telegram/webhook")
-async def telegram_webhook(
-    request: Request,
-    x_telegram_bot_api_secret_token: str | None = Header(None),
-    dp:Dispatcher = Depends(get_dispatcher),
-    bot:Dispatcher = Depends(get_bot),
-):
-    if x_telegram_bot_api_secret_token != settings.web_hook_token:
-        return Response(status_code=403)
-    update = Update.model_validate(await request.json())
-    result: TelegramMethod | None = await dp.feed_update(bot, update)
-    # Если хендлер вернул метод — отдадим его прямо в ответ (экономит запрос к Bot API)
-    # if result is not None:
-    #     return Response(result.model_dump_json(), media_type="application/json")
-    return {"ok": True}

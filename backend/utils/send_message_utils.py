@@ -3,9 +3,9 @@ from typing import List
 from aiogram import Bot
 from aiogram.types import ChatFullInfo, Message
 from sqlalchemy.orm import Session
-from db.main_model import ChatToPublic, User
-from db.utils import get_bookings_last_5_days
-from bot.msg_creator import create_booking_msg
+from model_db.main_model import ChatToPublic, User
+from utils.db_utils import get_bookings_last_5_days
+from utils.msg_creator import create_booking_msg
 from Settings import settings
 from sqlalchemy import select, asc
 from logger.logging import get_logger
@@ -87,6 +87,3 @@ async def _edit_msg(bot:Bot, chat_id:int, msg_id:int|None, new_text:str):
         print(e)
         logger.error(e)
         raise  e
-
-
-

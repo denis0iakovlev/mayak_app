@@ -1,4 +1,3 @@
-import os 
 import asyncio
 from logger.logging import get_logger
 from aiogram import Bot, Dispatcher

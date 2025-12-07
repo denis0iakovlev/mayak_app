@@ -1,4 +1,4 @@
-from db.main_model import Booking, User
+from model_db.main_model import Booking, User
 from Settings import settings
 import datetime
 

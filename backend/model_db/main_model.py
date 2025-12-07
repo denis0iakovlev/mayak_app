@@ -78,5 +78,4 @@ class ChatToPublic(Base):
     post_scheduler=Column(Boolean, default=False)
     can_send = Column(Boolean, nullable=False)
     name_chat = Column(String, nullable=False)
-
-                   
+              

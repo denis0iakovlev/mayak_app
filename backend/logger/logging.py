@@ -1,4 +1,4 @@
-import logging, os, sys
+import logging,  sys
 from logging.config import dictConfig
 from Settings import settings
 from logger.context import req_id_var, chat_id_var, user_id_var

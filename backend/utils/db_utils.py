@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from db.main_model import User, Booking, Court
+from model_db.main_model import User, Booking, Court
 from typing import List
 from datetime import  date, timedelta, datetime
 from sqlalchemy import select, or_, and_
@@ -8,7 +8,7 @@ from Settings import settings
 from collections import defaultdict
 
 def get_user(telegram_id:int, db:Session)->User:
-    user = db.query(User).filter(User.telegram_id == telegram_id).first()
+    user = db.get(User,telegram_id)
     if not user:
         raise Exception("В БД отсутствует пользователем с переданным id")
     return user

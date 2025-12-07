@@ -3,11 +3,10 @@ from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, ChatMemberUpdated, ChatMember, Chat
 from logger.logging import get_logger
 from sqlalchemy.ext.asyncio import AsyncSession
-from db.main_model import ChatToPublic, User
+from model_db.main_model import ChatToPublic, User
 from sqlalchemy import select
 from typing import Tuple
-from Settings import settings
-from bot.sendMsg import _send_text_async
+from utils.send_message_utils import _send_text_async
 
 NEW_MSG_TEXT = "В этом сообщении будет выводится расписание. После того как кто-то забронирует корт, вместо этого сообщения появится список бронирований. Вывод бронирований производится за следуюшие 5 дней, за исключением тех которые уже закончиличь сегодня или начнутся в ближайшие пол часа. Не удаляйте это сообщение."
 

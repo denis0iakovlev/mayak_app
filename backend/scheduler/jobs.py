@@ -5,9 +5,9 @@ from Settings import settings
 from scheduler.callbacks import reminder_job, change_status
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from aiogram import Bot
-from db.main_model import Booking
+from model_db.main_model import Booking
 from logger.logging import get_logger
-from bot.msg_creator import create_notify_booking
+from utils.msg_creator import create_notify_booking
 
 logger = get_logger("scheduler.job")
 
@@ -43,24 +43,21 @@ class JobSpec:
         return d
 
 #Генерация уникального job_id
-def _reminder_job_id(booking_id: int, start_at: datetime) -> str:
-    return f"booking_reminder_{booking_id}_{int(start_at.timestamp())}"   
+def reminder_job_id(booking_id: int, remind_at: datetime) -> str:
+    
+    return f"booking_reminder_{booking_id}_{int(remind_at.timestamp())}"   
 
-def make_reminder_job_spec(booking: Booking, bot:Bot) -> Optional[JobSpec]:
+def make_reminder_job_spec(booking: Booking,remind_at:datetime, bot:Bot) -> Optional[JobSpec]:
     """Создаёт напоминание за некоторое время до начала.
     Вернёт None, если ставить напоминание уже поздно.
     """
-    dateBook = datetime.fromisoformat(booking.date)
-    startDt = datetime.combine(dateBook, booking.start_time, tzinfo=settings.tzInfo)
-    run_at = startDt - timedelta(minutes=settings.reminder_lead_time)
-    logger.info('Напоминание сработает в %s}', run_at.strftime("%d/%m/%y %H:%M"))
-    job_id = _reminder_job_id(booking.id, startDt)
+    job_id = reminder_job_id(booking.id, remind_at)
     notify_message = create_notify_booking(booking)
     return JobSpec(
         id=job_id,
         func=reminder_job,
         trigger="date",
-        run_date=run_at,
+        run_date=remind_at,
         kwargs={
             "bot":bot,
             "user_id":booking.user_id,
