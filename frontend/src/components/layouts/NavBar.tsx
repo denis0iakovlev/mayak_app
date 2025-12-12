@@ -1,36 +1,44 @@
 // components/Navbar.tsx
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
-import { useMayakUser } from '../context/UserInitializer'
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { useMayakUser } from "../context/UserInitializer";
+import { isActivePath } from "@/utils/path.utils";
 
 export const Navbar = () => {
-  const pathname = usePathname()
+  const pathname = usePathname();
   const mayakUser = useMayakUser();
   const navItems = [
-    { href: '/', label: 'Бронировать' },
-    { href: '/dashboard', label: 'Мои брони' },
-  ]
-  if (mayakUser?.role === 1){
+    { href: "/", label: "Бронировать" },
+    { href: "/dashboard", label: "Мои брони" },
+  ];
+  if (mayakUser?.role === 1) {
     navItems.push({
-      href: '/admin', label: 'ЛК'
-    })
+      href: "/admin",
+      label: "ЛК",
+    });
   }
   return (
     <nav className="bg-white shadow-sm border-b ">
       <div className=" px-4 py-4 flex justify-between items-start">
         <div className="flex  ">
           {navItems.map((item, inx) => (
-            <div key={inx} className={cn('skew-x-12 border-1 border-blue-600 bg-sky-200 rounded-sm', pathname === item.href && 'font-semibold border-2 border-green-600 bg-amber-600'
-            )}>
+            <div
+              key={inx}
+              className={cn(
+                "skew-x-12 border-1 border-blue-600 bg-sky-200 rounded-sm",
+                isActivePath(pathname, item.href) &&
+                  "font-semibold border-2 border-green-600 bg-amber-600"
+              )}
+            >
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'relative px-4 py-2  -skew-x-12 text-gray-900 block',
-                  pathname === item.href && 'font-semibold '
+                  "relative px-4 py-2  -skew-x-12 text-gray-900 block",
+                  isActivePath(pathname, item.href) && "font-semibold "
                 )}
               >
                 {item.label}
@@ -40,5 +48,5 @@ export const Navbar = () => {
         </div>
       </div>
     </nav>
-  )
-}
+  );
+};

@@ -1,104 +1,120 @@
-import { AxiosRequestConfig } from "axios";
+import axios, { AxiosRequestConfig } from "axios";
 import apiSrv from "@/api/axios";
 import { format } from "date-fns";
-import { BookingInfoWithUser, BookingWithUserScheme, UpdateCourtPayload, UserInfo, UserScheme } from "@/schemas/Schemas";
+import {
+  BookingInfo,
+  BookingInfoWithUser,
+  BookingScheme,
+  BookingWithUserScheme,
+  UpdateCourtPayload,
+  UserInfo,
+  UserScheme,
+} from "@/schemas/Schemas";
+import { ChangeBookingPayload, UpdateUserData } from "@/schemas/AdminSchemas";
 
-export async function get_admin_booking_list(admin_id: number, targetDate: Date): Promise<BookingInfoWithUser[]> {
-    const params: AxiosRequestConfig = {
-        params: {
-            admin_id: admin_id,
-            targetDate: format(targetDate, "yyyy-MM-dd")
-        }
-    }
-    try {
-        const resp = await apiSrv.get("admin/booking/all", params);
-        const data = await resp.data as [];
-        console.log(data)
-        const bookingsList = data.map(booking => (BookingWithUserScheme.parse(booking)))
-        return bookingsList;
-    } catch (err) {
-        console.log(err);
-        throw new Error(`Не удалось получить список бронирований ${(err as Error).message}`);
-    }
+export async function GetBookingsByAdmin(
+  admin_id: number,
+  targetDate: Date
+): Promise<BookingInfoWithUser[]> {
+  const params: AxiosRequestConfig = {
+    params: {
+      targetDate: format(targetDate, "yyyy-MM-dd"),
+      admin_id: admin_id,
+    },
+  };
+  try {
+    const resp = await apiSrv.get("admin/booking/all", params);
+    const data = (await resp.data) as [];
+    console.log(data);
+    const bookingsList = data.map((booking) =>
+      BookingWithUserScheme.parse(booking)
+    );
+    return bookingsList;
+  } catch (err) {
+    console.log(err);
+    throw new Error(
+      `Не удалось получить список бронирований ${(err as Error).message}`
+    );
+  }
 }
 
-export async function BookingChangeCourt(admin_id: number, booking_id: number, court_id: number) {
-    try {
-        const resp = apiSrv.patch("admin/booking/change_court", { admin_id, booking_id, court_id })
-    } catch (e) {
-        throw e;
+export async function ChangeBooking(
+  admin_id: number,
+  booking_id: number,
+  payload: ChangeBookingPayload
+): Promise<BookingInfo> {
+  try {
+    const response = await apiSrv.patch(
+      `admin/booking/${booking_id}`,
+      payload,
+      { params: { admin_id } }
+    );
+    const booking = BookingScheme.parse(response.data);
+    return booking;
+  } catch (err) {
+    if (axios.isAxiosError(err)) {
+      console.log("Ошибка Axios:", err.response?.data);
+      console.log("Статус:", err.response?.status);
+    } else {
+      console.log("Неизвестная ошибка:", err);
     }
-}
-
-export async function BookingChangeStatus(admin_id: number, booking_id: number, new_status: number) {
-    try {
-        const resp = await apiSrv.patch("admin/booking/change_status", { admin_id, booking_id, new_status })
-        if (resp.status != 200) {
-            throw new Error(resp.statusText);
-        }
-    } catch (e) {
-        throw e;
-    }
+    throw Error("Не удалось изменить бронирование");
+  }
 }
 
 export async function GetAllUsers(admin_id: number) {
-    try {
-        const param = {
-            params: {
-                admin_id
-            }
-        }
-        //const resp = await apiSrv.get("admin/user/all", param);
-        const resp = await apiSrv<UserInfo[]>(`admin/user/all`, param);
-        if (resp.status != 200) {
-            throw new Error(resp.statusText)
-        }
-        const res = resp.data.map(d => UserScheme.parse(d))
-        return res;
-    } catch (e) {
-        throw e;
+  try {
+    const param = {
+      params: {
+        admin_id,
+      },
+    };
+    //const resp = await apiSrv.get("admin/user/all", param);
+    const resp = await apiSrv<UserInfo[]>(`admin/user/users`, param);
+    if (resp.status != 200) {
+      throw new Error(resp.statusText);
     }
+    const res = resp.data.map((d) => UserScheme.parse(d));
+    return res;
+  } catch (e) {
+    throw e;
+  }
 }
 
-export type UpdateUserData = Partial<Pick<UserInfo, "is_trainer" | "username" | "phone_number">> &
-{
-    admin_id: number,
-    user_id: number,
-    role?: number
-}
-export async function UpdateUser(data: UpdateUserData) {
-    try {
-        const resp = await apiSrv.put("admin/user/update", data);
-        if (resp.status != 200) {
-            throw new Error(resp.data);
-        }
-    } catch (e) {
-        if (e instanceof Error) {
-            throw e;
-        } else {
-            throw new Error("Не удалось обновить данные пользователя");
-        }
+export async function ChangeUser(
+  changing_user_id: number,
+  admin_id: number,
+  payload: UpdateUserData
+) {
+  try {
+    const resp = await apiSrv.patch(`admin/user/${changing_user_id}`, payload, {
+      params: { admin_id },
+    });
+    if (resp.status != 200) {
+      throw new Error(resp.data);
     }
+  } catch (e) {
+    if (e instanceof Error) {
+      throw e;
+    } else {
+      throw new Error("Не удалось обновить данные пользователя");
+    }
+  }
 }
 
-export async function ChangePrice(payload: { admin_id: number, booking_id: number, price: number }) {
-    try {
-        await apiSrv.patch("admin/booking/change_price", payload);
-    } catch (e) {
-        throw e;
-    }
+export async function ChangeCourt(
+  admin_id: number,
+  court_id: number,
+  payload: UpdateCourtPayload
+) {
+  try {
+    const params: AxiosRequestConfig = {
+      params: {
+        admin_id,
+      },
+    };
+    await apiSrv.patch(`admin/courts/${court_id}`, payload, params);
+  } catch (e) {
+    throw e;
+  }
 }
-
-export async function update_court_info(admin_id: number,court_id:number, payload: UpdateCourtPayload) {
-    try {
-        const params: AxiosRequestConfig = {
-            params: {
-                admin_id
-            }
-        }
-        await apiSrv.patch(`admin/courts/${court_id}`,payload, params )
-    } catch (e) {
-        throw e;
-    }
-}
-

@@ -1,11 +1,6 @@
-'use client'
-import Loader from "@/components/layouts/Loader"
-import { Booking } from "@/features/booking/components/Booking"
-import { Suspense } from "react"
+"use client";
+import { Booking } from "@/features/booking/components/Booking";
 
 export default function Home() {
-  return (
-    // <Suspense fallback={<Loader message="Загружаем доступное время на кортах" />}>
-      <Booking />
-  )
+  return <Booking />;
 }

@@ -23,10 +23,10 @@ def admin_change_booking_endpoints(booking_id:int = Path(...),
         raise HTTPException(status_code=503, detail=f"Не удалось обновить бронирование. {str(e)}")
     
 @router.get("/all", response_model=List[AdminBookingOut])
-def get_all_bookings_endpoints(targetData:date = Query(format=""),
+def get_all_bookings_endpoints(targetDate:date = Query(format=""),
     session:Session = Depends(get_db),
     scheduler:AsyncIOScheduler = Depends(get_scheduler)):
     try:
-        return get_all_bookings_by_date(targetData, session)
+        return get_all_bookings_by_date(targetDate, session)
     except Exception as e:
         raise HTTPException(status_code=504, detail=f"Не удалось получить бронирования для админа {str(e)}")

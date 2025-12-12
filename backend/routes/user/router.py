@@ -15,7 +15,7 @@ import json
 logger = get_logger("route.user.route")
 router = APIRouter(prefix="/user", tags=["Функции пользователя"] )
 #Создать бронирование
-@router.post("/{user_id}/booking/add", response_model=BookingOut)
+@router.post("/{user_id}/booking", response_model=BookingOut)
 def post_create_booking(user_id=Path(...),
                 payload:BookingCreatePayload = Body(),
                    scheduler:AsyncIOScheduler = Depends(get_scheduler),
