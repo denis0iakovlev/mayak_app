@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig } from "axios";
+import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import apiSrv from "@/api/axios";
 import { format } from "date-fns";
 import {
@@ -6,11 +6,18 @@ import {
   BookingInfoWithUser,
   BookingScheme,
   BookingWithUserScheme,
-  UpdateCourtPayload,
+  CourtInfo,
+  CourtScheme,
+  UpdateCourtPayload as CreateUpdateCourtPayload,
   UserInfo,
   UserScheme,
+  PriceGrid,
+  PriceGridSchema,
 } from "@/schemas/Schemas";
 import { ChangeBookingPayload, UpdateUserData } from "@/schemas/AdminSchemas";
+import { ZodError } from "zod/v4";
+import { getAppErrorMessage } from "@/utils/handlingError";
+import { minutesToTime } from "@/features/admin/courts/utils/utils";
 
 export async function GetBookingsByAdmin(
   admin_id: number,
@@ -30,11 +37,8 @@ export async function GetBookingsByAdmin(
       BookingWithUserScheme.parse(booking)
     );
     return bookingsList;
-  } catch (err) {
-    console.log(err);
-    throw new Error(
-      `Не удалось получить список бронирований ${(err as Error).message}`
-    );
+  } catch (e) {
+    throw new Error(getAppErrorMessage(e));
   }
 }
 
@@ -51,14 +55,8 @@ export async function ChangeBooking(
     );
     const booking = BookingScheme.parse(response.data);
     return booking;
-  } catch (err) {
-    if (axios.isAxiosError(err)) {
-      console.log("Ошибка Axios:", err.response?.data);
-      console.log("Статус:", err.response?.status);
-    } else {
-      console.log("Неизвестная ошибка:", err);
-    }
-    throw Error("Не удалось изменить бронирование");
+  } catch (e) {
+    throw new Error(getAppErrorMessage(e));
   }
 }
 
@@ -77,7 +75,7 @@ export async function GetAllUsers(admin_id: number) {
     const res = resp.data.map((d) => UserScheme.parse(d));
     return res;
   } catch (e) {
-    throw e;
+    throw new Error(getAppErrorMessage(e));
   }
 }
 
@@ -94,18 +92,14 @@ export async function ChangeUser(
       throw new Error(resp.data);
     }
   } catch (e) {
-    if (e instanceof Error) {
-      throw e;
-    } else {
-      throw new Error("Не удалось обновить данные пользователя");
-    }
+    throw new Error(getAppErrorMessage(e));
   }
 }
 
 export async function ChangeCourt(
   admin_id: number,
   court_id: number,
-  payload: UpdateCourtPayload
+  payload: CreateUpdateCourtPayload
 ) {
   try {
     const params: AxiosRequestConfig = {
@@ -115,6 +109,72 @@ export async function ChangeCourt(
     };
     await apiSrv.patch(`admin/courts/${court_id}`, payload, params);
   } catch (e) {
-    throw e;
+    throw new Error(getAppErrorMessage(e));
+  }
+}
+
+export async function CreateCourt(
+  admin_id: number,
+  payload: CreateUpdateCourtPayload
+) {
+  try {
+    const resp = await apiSrv.post("admin/courts/add", payload, {
+      params: { admin_id },
+    });
+    return CourtScheme.parse(resp.data);
+  } catch (e) {
+    throw new Error(getAppErrorMessage(e));
+  }
+}
+export async function DeleteCourt(admin_id: number, court_id: number) {
+  try {
+    await apiSrv.delete(`admin/courts/${court_id}`, { params: { admin_id } });
+  } catch (e) {
+    throw new Error(getAppErrorMessage(e));
+  }
+}
+
+export async function GetCourtPriceGrids(
+  admin_id: number,
+  court_id: number
+): Promise<PriceGrid[]> {
+  try {
+    const response = await apiSrv.get(`admin/courts/priceGrid/${court_id}`, {
+      params: { admin_id },
+    });
+    if (Array.isArray(response.data)) {
+      const grids = response.data.map((g) => PriceGridSchema.parse(g));
+      return grids;
+    }
+    return [];
+  } catch (e) {
+    throw new Error(getAppErrorMessage(e));
+  }
+}
+//
+export async function UpdatePriceGrids(
+  admin_id: number,
+  court_id: number,
+  grids: PriceGrid[]
+) {
+  try {
+    if (grids.length === 0) {
+      return [];
+    }
+    const data = grids.map((g) => ({
+      price: g.price,
+      price_trainer: g.price_trainer,
+      time_start: minutesToTime(g.time_start),
+      time_end: minutesToTime(g.time_end),
+    }));
+    const resp = await apiSrv.post(`admin/courts/priceGrid/${court_id}`, data, {
+      params: { admin_id },
+    });
+    if (Array.isArray(resp.data)) {
+      return resp.data.map((g) => PriceGridSchema.parse(g));
+    }
+    throw new Error("Неизвестный ответ от сервера");
+  } catch (e) {
+    throw new Error(getAppErrorMessage(e));
   }
 }

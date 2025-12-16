@@ -45,16 +45,8 @@ export function Booking() {
         />
         <PickInterval
           day={format(targetDate, "yyyy-MM-dd")}
-          courtId={targetCourt.id}
+          court={targetCourt}
         />
-        {/* <div>
-                    <p className="mt-4 mx-4 text-sm text-muted-foreground">
-                        Начало: <span className="font-semibold">{bookingForm.interval.start ? format(bookingForm.interval.start, "HH:mm") : "Не выбрано"}</span>
-                    </p>
-                    <p className="mt-4 mx-4 text-sm text-muted-foreground">
-                        Конец: <span className="font-semibold">{bookingForm.interval.end ? format(bookingForm.interval.end, "HH:mm") : "Не выбрано"}</span>
-                    </p>
-                </div> */}
       </CardContent>
     </Card>
   );

@@ -14,33 +14,30 @@ export const UserScheme = z.object({
 });
 export type UserInfo = z.infer<typeof UserScheme>;
 
-export const RangeSchema = z
-  .object({
-    id: z.number().int().positive().optional(),
-    time_start: z.iso
-      .time()
-      .transform((str) => parse(str, "HH:mm:ss", new Date(0))),
-    time_end: z.iso
-      .time()
-      .transform((str) => parse(str, "HH:mm:ss", new Date(0))),
-    price: z.number().int().nonnegative(),
-    price_trainer: z.number().int().nonnegative(),
-    court_id: z.number().int().positive(),
-  })
-  .refine(({ time_start, time_end }) => time_end > time_start, {
-    message: "time_end должен быть больше time_start",
-    path: ["time_end"],
-  });
+export const PriceGridSchema = z.object({
+  time_start: z.iso.time().transform((s) => {
+    const time = parse(s, "HH:mm:ss", new Date(0));
+    return time.getMinutes() + time.getHours() * 60;
+  }), //Получаем только часы
+  time_end: z.iso.time().transform((s) => {
+    const time = parse(s, "HH:mm:ss", new Date(0));
+    return time.getMinutes() + time.getHours() * 60;
+  }),
+  price: z.number().int().nonnegative(),
+  price_trainer: z.number().int().nonnegative(),
+});
 
-export type Range = z.infer<typeof RangeSchema>;
+export type PriceGrid = z.infer<typeof PriceGridSchema>;
 
 export const CourtScheme = z.object({
   id: z.number(),
   name: z.string(),
   description: z.string().optional(),
   is_active: z.boolean(),
+  grids: z.array(PriceGridSchema).default([]),
 });
 export type CourtInfo = z.infer<typeof CourtScheme>;
+
 //Схема для обновления кортов
 export const UpdateCourtScheme = CourtScheme.partial();
 export type UpdateCourtPayload = Omit<z.infer<typeof UpdateCourtScheme>, "id">;

@@ -17,6 +17,7 @@ from bot.bot_routes import r as main_bot_router
 from routes.user.router import router as user_routes
 from routes.share.router import router as share_router
 from routes.admin.courts.route import router as admin_courts_routes
+from routes.admin.courts.priceGrid.route import router as admin_price_grid
 from routes.admin.user.route import router as admin_user_route
 from routes.admin.booking.route import router as admin_booking_route
 from routes.admin.tgChats.router import router as tg_chat_router
@@ -111,4 +112,5 @@ app.include_router(admin_user_route)
 app.include_router(tg_chat_router)
 app.include_router(share_router)
 app.include_router(webhook_router)
+app.include_router(admin_price_grid)
 
