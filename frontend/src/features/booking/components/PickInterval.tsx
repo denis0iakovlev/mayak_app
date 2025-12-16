@@ -10,6 +10,8 @@ import {
   isSameHour,
   isSameMinute,
   isToday,
+  minutesToSeconds,
+  parse,
   set,
   startOfDay,
 } from "date-fns";
@@ -24,7 +26,7 @@ import {
 import useSWR from "swr";
 import { GetBookedSlots } from "@/services/shareServices";
 import { useEffect, useMemo, useState } from "react";
-import { BookingPayload } from "@/schemas/Schemas";
+import { BookingPayload, CourtInfo } from "@/schemas/Schemas";
 import {
   initData,
   isMainButtonMounted,
@@ -34,6 +36,7 @@ import {
 import { create_booking } from "@/services/userService";
 import { MainButtonParams, SetMainButton } from "@/utils/tgUtils";
 import { MAIN_BUTTON_MAIN } from "@/styles/styles";
+import { minutesToTime } from "@/features/admin/courts/utils/utils";
 
 export type BookingInterval = {
   start_time: Date | null;
@@ -41,11 +44,11 @@ export type BookingInterval = {
 };
 
 type PickInterval = {
-  courtId: number;
+  court: CourtInfo;
   day: string;
 };
 
-export default function PickInterval({ courtId, day }: PickInterval) {
+export default function PickInterval({ court, day }: PickInterval) {
   const user = useSignal(initData.user);
   if (!isMainButtonMounted()) {
     mountMainButton();
@@ -55,13 +58,13 @@ export default function PickInterval({ courtId, day }: PickInterval) {
     error,
     mutate,
   } = useSWR(
-    [`time-picker`, courtId, day],
+    [`time-picker`, court.id, day],
     ([, courtId, day]: [string, number, string]) =>
       GetBookedSlots(day, courtId),
     { suspense: true }
   );
   if (error) {
-    throw new Error("Не удалось получить данные о свобоном времени");
+    throw new Error("Не удалось получить данные о свободном времени");
   }
   const [interval, setInterval] = useState<BookingInterval>({
     start_time: null,
@@ -69,10 +72,23 @@ export default function PickInterval({ courtId, day }: PickInterval) {
   });
   //Добавить слоты учитывающие открытие и закрытие помещения, а также особый случай ,
   // Если дата брони сегодня то учитывать текущее время
-  const [free_times, startBookingTimes, endBookingTimes] = useMemo(
-    () => prepare_time_slots(new Date(day), slots.booked_slots),
-    [slots]
-  );
+  const [free_times, startBookingTimes, endBookingTimes] = useMemo(() => {
+    const open_time =
+      court.grids.length > 0
+        ? minutesToTime(court.grids[0].time_start)
+        : OPEN_TIME;
+    const close_time =
+      court.grids.length > 0
+        ? minutesToTime(court.grids[court.grids.length - 1].time_end)
+        : CLOSE_TIME;
+
+    return prepare_time_slots(
+      new Date(day),
+      slots.booked_slots,
+      parse(open_time, "HH:mm", new Date(0)),
+      parse(close_time, "HH:mm", new Date(0))
+    );
+  }, [slots]);
   useEffect(() => {
     const canSubmit =
       interval.start_time !== null && interval.end_time !== null;
@@ -93,7 +109,7 @@ export default function PickInterval({ courtId, day }: PickInterval) {
       dateBooking: day,
       start_time: format(interval.start_time, "HH:mm"),
       end_time: format(interval.end_time, "HH:mm"),
-      court_id: courtId,
+      court_id: court.id,
     };
     try {
       await create_booking(user.id, payload);
@@ -124,7 +140,10 @@ export default function PickInterval({ courtId, day }: PickInterval) {
   );
 }
 
-function get_free_time_of_day(booked_slots: TimeSlot[]): Date[] {
+function get_free_time_of_day(
+  booked_slots: TimeSlot[],
+  end_time: Date
+): Date[] {
   const normalized_slots: TimeSlot[] = booked_slots.map((slot) => ({
     booked_start: normalize_time(slot.booked_start),
     booked_end: normalize_time(slot.booked_end),
@@ -137,31 +156,26 @@ function get_free_time_of_day(booked_slots: TimeSlot[]): Date[] {
     milliseconds: 0,
   });
 
-  let end = set(new Date(0), {
-    hours: CLOSE_TIME.hours,
-    minutes: CLOSE_TIME.minutes,
-    seconds: 0,
-    milliseconds: 0,
-  });
-
   if (booked_slots.length > 0) {
     const inx = normalized_slots.findIndex(
-      (s) => isSameHour(s.booked_end, end) && isSameMinute(s.booked_end, end)
+      (s) =>
+        isSameHour(s.booked_end, end_time) &&
+        isSameMinute(s.booked_end, end_time)
     );
     if (inx > -1) {
-      end = normalized_slots[inx].booked_start;
+      end_time = normalized_slots[inx].booked_start;
     }
   }
 
   const free_times: Date[] = [];
-  while (start <= end) {
+  while (start <= end_time) {
     const inx = normalized_slots.findIndex(
       (slot) => start > slot.booked_start && start < slot.booked_end
     );
     if (inx < 0) {
       free_times.push(start);
     } else {
-      if (normalized_slots[inx].booked_end <= end) {
+      if (normalized_slots[inx].booked_end <= end_time) {
         free_times.push(normalized_slots[inx].booked_end);
       }
       start = normalized_slots[inx].booked_end;
@@ -171,28 +185,23 @@ function get_free_time_of_day(booked_slots: TimeSlot[]): Date[] {
   return free_times;
 }
 
-function prepare_time_slots(target_day: Date, time_slots: TimeSlot[]) {
+function prepare_time_slots(
+  target_day: Date,
+  time_slots: TimeSlot[],
+  open_time: Date,
+  close_time: Date
+) {
   //Добавить слоты учитывающие открытие и закрытие помещения, а также особый случай ,
   // Если дата брони сегодня то учитывать текущее время
   const startSlot: TimeSlot = {
     booked_start: startOfDay(new Date(0)),
-    booked_end: set(new Date(0), {
-      hours: OPEN_TIME.hours,
-      minutes: OPEN_TIME.minutes,
-      seconds: 0,
-      milliseconds: 0,
-    }),
+    booked_end: open_time,
   };
   const occuped_slots: TimeSlot[] = [
     startSlot,
     ...time_slots,
     {
-      booked_start: set(new Date(0), {
-        hours: CLOSE_TIME.hours,
-        minutes: CLOSE_TIME.minutes,
-        seconds: 0,
-        milliseconds: 0,
-      }),
+      booked_start: close_time,
       booked_end: endOfDay(new Date(0)),
     },
   ];
@@ -202,6 +211,7 @@ function prepare_time_slots(target_day: Date, time_slots: TimeSlot[]) {
     hours: now.getHours(),
     minutes: now.getMinutes(),
   });
+  //Если день текущий то начать с текущего времени
   if (isToday(target_day) && nowTime > startSlot.booked_end) {
     const start_slots = normalize_time(get_today_near_round_time());
     occuped_slots[0].booked_end = start_slots;
@@ -217,7 +227,7 @@ function prepare_time_slots(target_day: Date, time_slots: TimeSlot[]) {
   }));
   const mergedIntervals = merge_time_slots(normalized);
   //Получить свободные слоты для заполнения выбора времени
-  const free_times = get_free_time_of_day(mergedIntervals);
+  const free_times = get_free_time_of_day(mergedIntervals, close_time);
   const startBookingTimes = mergedIntervals.map(
     (interval) => interval.booked_start
   );

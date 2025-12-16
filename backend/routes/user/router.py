@@ -10,7 +10,6 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from logger.logging import get_logger
 from routes.user.schemas import BookingCreatePayload, ChangeStatusBookingPayload
 from routes.user.services import create_booking, change_booking_status
-import json
 
 logger = get_logger("route.user.route")
 router = APIRouter(prefix="/user", tags=["Функции пользователя"] )

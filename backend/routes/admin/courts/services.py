@@ -1,9 +1,9 @@
-from routes.admin.courts.schemas import CreateCourtPayload, UpdateCourtPayload
+from routes.admin.courts.schemas import  CreateUpdateCourtPayload
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from model_db.main_model import Court
 
-def create_court(payload:CreateCourtPayload,
+def create_court(payload:CreateUpdateCourtPayload,
     db:Session )->Court:
     court = Court(
         name=payload.name,
@@ -15,7 +15,7 @@ def create_court(payload:CreateCourtPayload,
     db.refresh(court)
     return court
 
-def change_court(court_id:int,db:Session, payload:UpdateCourtPayload ):
+def change_court(court_id:int,db:Session, payload:CreateUpdateCourtPayload ):
     court = db.get(Court, court_id)
     if court is None:
         raise HTTPException(status_code=407, detail="Корт с таким id отсутствует")

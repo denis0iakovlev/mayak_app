@@ -3,7 +3,7 @@ import datetime
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from fapi_dependency import get_db
 from logger.logging import get_logger
@@ -21,7 +21,7 @@ def get_court_info(
     session:Session = Depends(get_db)
 ):
     try:
-        court = session.execute(select(Court).where(Court.id == court_id)).scalar_one()
+        court = session.execute(select(Court).options(selectinload(Court.grids)).where(Court.id == court_id)).scalar_one_or_none()
         return court
     except Exception as e:
         logger.info("Не удалось получить данные о корте %d", court_id)

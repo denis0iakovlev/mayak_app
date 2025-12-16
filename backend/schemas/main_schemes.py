@@ -1,5 +1,5 @@
 # schemas.py
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import time, date, datetime
 
@@ -12,13 +12,24 @@ class TimeSlots(BaseModel):
     court_id:int|None = None
     booked_slots:List[BookedSlot]
 
+class PriceGridOut(BaseModel):
+    court_id: int
+    time_start: time
+    time_end: time
+    price: int
+    price_trainer: int
+
+    model_config = ConfigDict(from_attributes=True)
+
 class CourtOut(BaseModel):
     id: int
     name: str
     description:str
     is_active:bool
+    grids:list[PriceGridOut]
     class Config:
         from_attributes = True
+
 
 class BookingOut(BaseModel):
     id: int

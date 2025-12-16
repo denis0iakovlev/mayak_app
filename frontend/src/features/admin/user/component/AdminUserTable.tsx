@@ -1,4 +1,3 @@
-import { CardTable } from "@/components/tables/CardTabel/CardTable";
 import { useEditController } from "@/hooks/useEditController";
 import { UserInfo } from "@/schemas/Schemas";
 import { ChangeUser, GetAllUsers } from "@/services/adminService";

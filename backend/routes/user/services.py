@@ -32,10 +32,7 @@ def create_booking(user_id:int, payload:BookingCreatePayload, bot:Bot, scheduler
     if court is None or not court.is_active:
         raise Exception("Корт не доступен")
     #посчитать стоимость бронирования
-    cost_of_hour = 1400
-    if (user.is_trainer):
-        cost_of_hour = 1000    
-    fee = calc_fee(start=payload.start_time, end=payload.end_time, cost_of_hour=cost_of_hour)
+    fee = calc_fee(start=payload.start_time, end=payload.end_time,is_trainer=user.is_trainer, grids=court.grids)
     logger.info("booking %s from %s to %s cost %d", payload.dateBooking,payload.start_time, payload.end_time, fee )
     # Создать бронь
     booking = Booking(
