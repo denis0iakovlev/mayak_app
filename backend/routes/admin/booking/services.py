@@ -22,11 +22,10 @@ def admin_change_booking(session:Session,bot:Bot, booking_id:int,payload: Update
         for k, v in only_filled.items():
             setattr(booking, k, v)
         if booking.status == 3:
-            user:User = booking.user
-            msg = f"Ваше бронирование отменено админом."
-            notify_cancel_booking(booking=booking, bot=bot, scheduler=scheduler, msg=msg, session=session)
             session.delete(booking)
             session.commit()
+            msg = f"Ваше бронирование отменено админом."
+            notify_cancel_booking(booking=booking, bot=bot, scheduler=scheduler, msg=msg, session=session)
             return booking
         session.commit()
         session.refresh(booking)

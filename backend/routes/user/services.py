@@ -74,10 +74,12 @@ def change_booking_status(user_id:int,payload:ChangeStatusBookingPayload, sessio
     if not booking:
         raise Exception("Отсутсвует бронирование с переданным id")
     if payload.new_status == 3:
+        session.delete(booking)
+        session.commit()
         msg = f'{user.first_name} - отменил бронирование на {booking.date} \nВремя: {booking.start_time.strftime("%H:%M")}-{booking.end_time.strftime("%H:%M")}'
         notify_cancel_booking(session, bot, scheduler, msg, booking)
-        session.delete(booking)
     else:
         booking.status = payload.new_status
     session.commit()
+    
     return {"status": "ok", "detail": "Статус изменен успешно"}
