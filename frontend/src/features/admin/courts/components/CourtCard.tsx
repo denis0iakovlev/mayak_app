@@ -1,11 +1,6 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import {
-  Field,
-  FieldContent,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
+import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { CourtInfo, UpdateCourtPayload } from "@/schemas/Schemas";
@@ -14,18 +9,19 @@ import { MAIN_BUTTON_MAIN } from "@/styles/styles";
 import { SetMainButton } from "@/utils/tgUtils";
 import { useForm } from "@tanstack/react-form";
 import { initData, useSignal } from "@telegram-apps/sdk-react";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import useSWRMutation from "swr/mutation";
 import { PriceGrid } from "@/schemas/Schemas";
 import { Slider } from "@/components/ui/slider";
-import { Delete, Plus, PlusSquare, RefreshCcw } from "lucide-react";
-import { minutesToTime, toTime } from "../utils/utils";
+import { Delete, PlusSquare, RefreshCcw } from "lucide-react";
+import { minutesToTime } from "../utils/utils";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useSWRConfig } from "swr";
+import { cn } from "@/lib/utils";
 
 type CourtCardProps = {
   court: CourtInfo;
@@ -201,13 +197,14 @@ export const CourtCard = ({ court, grids, refresh }: CourtCardProps) => {
                 <div>
                   <Slider
                     value={range}
+                    className="border rounded-lg p-4"
                     name={field.name}
                     min={0}
                     max={24 * 60}
                     step={30}
                     onValueChange={handleChangeRange}
                   />
-                  <div className="w-max mx-auto flex flex-col gap-3 pt-5">
+                  <div className="w-full mx-auto flex flex-col gap-3 pt-3">
                     {field.state.value.map((g, i) => {
                       const handleDelete = (inx: number) => {
                         if (inx === 0 || inx === field.state.value.length - 1) {
@@ -263,9 +260,19 @@ export const CourtCard = ({ court, grids, refresh }: CourtCardProps) => {
                           ]);
                         }
                       };
+                      const textProp =
+                        "text-[0.75rem] font-semibold  h-fit py-1 px-2 text-center sm:text-[1rem] sm:py-2";
                       return (
-                        <div className="w-full mx-auto flex gap-2" key={i}>
-                          <p className="w-max border rounded-lg px-2">
+                        <div
+                          className="w-full mx-auto flex gap-2 flex-wrap items-center justify-center"
+                          key={i}
+                        >
+                          <p
+                            className={cn(
+                              "w-max border rounded-lg self-center",
+                              textProp
+                            )}
+                          >
                             <form.Field
                               name={`grids[${i}].time_start`}
                               key={`time_start_${i}`}
@@ -274,9 +281,7 @@ export const CourtCard = ({ court, grids, refresh }: CourtCardProps) => {
                                 minutesToTime(subField.state.value)
                               }
                             </form.Field>
-                            <span className="text-xl px-1 font-semibold">
-                              :
-                            </span>
+                            <span className=" px-1 font-semibold">:</span>
                             <form.Field
                               name={`grids[${i}].time_end`}
                               key={`time_end_${i}`}
@@ -295,7 +300,10 @@ export const CourtCard = ({ court, grids, refresh }: CourtCardProps) => {
                                 <TooltipTrigger asChild>
                                   <Input
                                     type="number"
-                                    className="max-w-20"
+                                    className={cn(
+                                      "max-w-15 sm:max-w-20",
+                                      textProp
+                                    )}
                                     step={50}
                                     defaultValue={subField.state.value}
                                     name={subField.name}
@@ -322,7 +330,10 @@ export const CourtCard = ({ court, grids, refresh }: CourtCardProps) => {
                                 <TooltipTrigger asChild>
                                   <Input
                                     type="number"
-                                    className="max-w-20"
+                                    className={cn(
+                                      "max-w-15 sm:max-w-20",
+                                      textProp
+                                    )}
                                     step={50}
                                     defaultValue={subField.state.value}
                                     onChange={(e) =>
@@ -342,11 +353,11 @@ export const CourtCard = ({ court, grids, refresh }: CourtCardProps) => {
                             <TooltipTrigger asChild>
                               <Button
                                 variant="outline"
-                                className="hover:bg-red-300"
+                                className="hover:bg-red-300 border disabled:border"
                                 onClick={() => handleDelete(i)}
                                 disabled={field.state.value.length === 1}
                               >
-                                Х
+                                <Delete className="size-6" stroke="#d40b52d6" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent sideOffset={-10}>

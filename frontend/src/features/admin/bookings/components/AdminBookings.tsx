@@ -94,7 +94,7 @@ export function AdminBookings({
           value: any
         ) => editController.setCellEdit(id, field, value),
       }),
-    []
+    [date]
   );
 
   const table = useReactTable<BookingInfoWithUser>({
@@ -109,7 +109,7 @@ export function AdminBookings({
       collapsible={
         <SimpleTable
           table={table}
-          key={`${editController.edits}`}
+          key={`table_on_${format(date, "dd/MM/yyyy")}`}
           changedRowPredicate={(row) =>
             !!editController.edits[(row as BookingInfoWithUser).id]
           }
