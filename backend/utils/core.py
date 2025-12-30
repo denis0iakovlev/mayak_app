@@ -23,7 +23,7 @@ def create_sync(url:str, is_sqlite:bool)->Tuple[Engine, Session]:
     logger.info("Создано движок и фабрика сессий. Актуализирована модель данных")
     #Проверка что есть admin
     with session_maker() as session:
-        admin = session.get(User, 102)
+        admin = session.get(User, 104)
         if admin is None:
             logger.info("В БД отсутствует нулевой админ ... Создаем...")
             zero_admin = User(telegram_id=104,first_name="admin", last_name="admin", role=1)

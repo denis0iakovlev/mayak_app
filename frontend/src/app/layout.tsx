@@ -10,14 +10,14 @@ import Loader from "@/components/layouts/Loader";
 export const metadata: Metadata = {
   title: "Корты на Маяке",
   description: "Лучшие корты города Каменск-Шахтинский",
-}
+};
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1.5,
-  userScalable: false
-}
+  userScalable: false,
+};
 
 export default function RootLayout({
   children,
@@ -30,13 +30,13 @@ export default function RootLayout({
         <main className="flex-grow">
           <TelegramInitializer>
             <UserInitiliazer>
-                <Navbar />
-                {children}
+              <Navbar />
+              {children}
             </UserInitiliazer>
           </TelegramInitializer>
         </main>
         <Footer />
       </body>
-    </html >
+    </html>
   );
 }

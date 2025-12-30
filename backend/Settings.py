@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     """Настройки приложения, загружаемые из переменных окружения / .env.
     Все параметры имеют безопасные дефолты, чтобы приложение не падало без .env.
     """
-    database_url:str = Field(default="sqlite:///db_data/data.db")
+    database_url:str = Field()
     sync_database_url:str = Field()
     bot_token: str =Field()
     bot_token_test: str =Field()
@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     reminder_lead_time: int = Field(default=10)
     # APScheduler
     tz: str = Field(default="Europe/Moskow")
-    scheduler_db: str = Field(default="sqlite:///db_data/scheduler.sqlite")
+    scheduler_db: str = Field()
 
-    public_url:str = Field(default="http://localhost:8000/telegram/webhook")
+    public_url:str = Field()
     web_hook_token:str = Field()
 
     log_level:str = Field(default="INFO")

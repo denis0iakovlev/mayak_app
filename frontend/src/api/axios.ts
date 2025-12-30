@@ -3,6 +3,9 @@ import axios, { AxiosError } from "axios";
 type ApiErrorResponse = { detail?: unknown };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
+if (API_URL === undefined) {
+  throw new Error(`Api not defined in environment`);
+}
 
 const apiSrv = axios.create({
   baseURL: API_URL,

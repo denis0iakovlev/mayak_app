@@ -20,3 +20,5 @@ backend/db_data/data.db-wal
 ~$преза.pptx
 преза.pdf
 преза.pptx
+backend/db_data/data_new.db-shm
+backend/db_data/data_new.db-wal

@@ -25,8 +25,8 @@ def get_time_slots(date:date, session:Session, court_id:int|None = None)->TimeSl
 def get_or_create_user(payload:TgUserInfo, session:Session)->User:
     try:
         user = session.get(User,payload.telegram_id)
-        if user is None:
-            user =  session.add(payload)
+        if user is None: 
+            session.add(payload.to_orm())
             session.commit()
             session.refresh(user)
         return user
