@@ -16,4 +16,6 @@ def create_booking_msg(grouped:dict[str,dict[str,list[Booking]]])->str:
                 result += f'\t  {book.user.username}\n'
     return result
 def create_notify_booking(book:Booking):
-    return  f'⏰ Напоминаем вам что через {settings.reminder_lead_time} минут начинается ваше бронирование.\n{"="*15}\nДетали бронирования:\nВремя: с {book.start_time.strftime("%H:%M")} по {book.end_time.strftime("%H:%M")}.\nКорт: {book.court.name.lower()}\nСтоимость: {round(book.fee)} руб.\n{"="*15}\nРеквизиты оплаты:\nНомер получателя: +7(928) 270-20-71\nБанк: Ozon bank\nПолучатель: Александр Николаевич Г.\nПримечание: скрин платежа отправить @marumelnikova\n{"="*15}\nC уважением админстрация кортов\nХорошей вам игры\nСоблюдайте и чтите кодекс теннисиста☝.'
+    return  f'⏰ Напоминаем вам что через {settings.reminder_lead_time} минут начинается ваше бронирование.\n{"="*15}\nДетали бронирования:\nВремя: с {book.start_time.strftime("%H:%M")} по {book.end_time.strftime("%H:%M")}.\nКорт: {book.court.name.lower()}\nC уважением админстрация кортов\nХорошей вам игры'
+def msg_after_creating_booking(booking:Booking):
+    return f'{"="*15}\nВы забронировали корт\n{"="*15}\nДата: {booking.date}\nВремя: {booking.start_time.strftime("%H:%M")} - {booking.end_time.strftime("%H:%M")}\nСтоимость аренды: {booking.fee} руб.\n{"="*15}\nКорт: {booking.court.name.lower()}\nОтменить бронирование можно в личном кабинете по ссылке внизу👇🏽'

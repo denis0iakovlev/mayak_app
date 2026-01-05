@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     sync_database_url:str = Field()
     bot_token: str =Field()
     bot_token_test: str =Field()
+    web_app_url:str=Field(description="Адрес web app")
     mode: str =Field()
     reminder_lead_time: int = Field(default=10)
     # APScheduler

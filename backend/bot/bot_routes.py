@@ -43,24 +43,18 @@ async def on_my_chat_member(upd:ChatMemberUpdated, bot:Bot, session:AsyncSession
 
     db_chat = await session.get(ChatToPublic, chat.id)
     if added or rights_changed:
-        if chat.type in  ["group", "supergroup"]:
-            if db_chat and not can_send:
-                await update_or_create_posting_chat(chat, False, session )
-                logger.info("Chat %s change status  to send post. %s -> %s ", chat.title, old_status, new_status)
-                await notify_admins(session,bot, f"Бот был лишен прав на публикацию расписаний в группе {chat.title}")
-        elif chat.type == "channel":
-            logger.info("Обновление статуса постинга в каналах.")
-            db_chat = await update_or_create_posting_chat(chat, is_posting=can_send, session=session)
-            if can_send and db_chat.editing_msg_id == None:
-                logger.info("Постинг бронирований в канале %s - создан")
-                msg = await bot.send_message(chat_id=chat.id, text=NEW_MSG_TEXT)
-                db_chat.editing_msg_id = msg.message_id
-                await notify_admins(session,bot, f"Бот был добавлен в канал {chat.title} - для публикации расписания")
-            elif not can_send:
-                db_chat.editing_msg_id = None
-                logger.info("Постинг бронирований в канале %s - прекращен")
-            await session.commit()
-
+        logger.info("Обновление статуса постинга в каналах.")
+        db_chat = await update_or_create_posting_chat(chat, is_posting=can_send, session=session)
+        if added :
+            if can_send:
+                await notify_admins(session,bot, f"Бот был добавлен в группу с правами для публикации в группе {chat.title}")
+            else:
+                await notify_admins(session,bot, f"Бот был добавлен в группу {chat.title} -  но без права публикации сообщений\nПубликация расписания-невозможна")
+        elif rights_changed:
+            if can_send:
+                await notify_admins(session,bot, f"Боту были добавлены права для публикации в группу {chat.title}")
+            else:
+                await notify_admins(session,bot, f"Боту были ограничены права на публикацию в группу {chat.title}")
     if removed:
         if db_chat:
             await session.delete(db_chat)
