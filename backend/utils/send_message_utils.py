@@ -1,5 +1,6 @@
+from pickle import NONE
 import anyio
-from typing import List
+from typing import List, Literal
 from aiogram import Bot
 from aiogram.types import ChatFullInfo, Message
 from sqlalchemy.orm import Session
@@ -9,28 +10,40 @@ from utils.msg_creator import create_booking_msg
 from Settings import settings
 from sqlalchemy import select, asc
 from logger.logging import get_logger
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import WebAppInfo
 
 logger = get_logger("bot.sendMsg")
 # ---------------------------
 # Утилиты отправки сообщений
 # ---------------------------
+INLINE_TYPE = Literal["main", "dashbord"]
 
-async def _send_text_async(bot:Bot, chat_id: int, text: str):
+async def _send_text_async(bot:Bot, chat_id: int, text: str, type_inline:INLINE_TYPE| None = None):
     """
     ЧИСТО АСИНХРОННАЯ отправка через aiogram.
     Вызывается через anyio.from_thread.run(...) из sync-контекста.
     """
     try:
-        await bot.send_message(chat_id=chat_id, text=text)
+        if type_inline is not None:
+            kb = InlineKeyboardBuilder()
+            if type_inline == "dashbord":
+                kb.button(text="Посмотреть брони", web_app=WebAppInfo(url=f"{settings.web_app_url}/dashboard"))
+            elif type_inline == "main":
+                 kb.button(text="Забронировать корт", web_app=WebAppInfo(url=f"{settings.web_app_url}/"))
+            msg = await bot.send_message(chat_id=chat_id, text=text, reply_markup=kb.as_markup())
+        else:
+            msg = await bot.send_message(chat_id=chat_id, text=text)
+        return msg
     except Exception as e:
         print(e)
 
-def send_text(bot:Bot,chat_id: int, text: str):
+def send_text(bot:Bot,chat_id: int, text: str, type_inline:INLINE_TYPE| None = None):
     """
     СИНХРОННАЯ обёртка для вызова из sync-кода (эндпойнтов, джоб APScheduler).
     Безопасно «прыгаем» в текущий event loop приложения.
     """
-    return anyio.from_thread.run(_send_text_async,bot, chat_id, text)
+    return anyio.from_thread.run(_send_text_async,bot, chat_id, text, type_inline)
 
 def notify_users(bot:Bot, text: str, user_ids:List[int] ):
     for usr_id in user_ids:
@@ -40,14 +53,14 @@ def notify_users(bot:Bot, text: str, user_ids:List[int] ):
             logger.error(str(e))
 
 def update_message_in_groups(bot:Bot, db:Session):
-    stmt = select(ChatToPublic).where(ChatToPublic.can_send == True, ChatToPublic.post_scheduler == True, ChatToPublic.editing_msg_id != None)
-    res = db.execute(stmt).scalars().all()
+    stmt = select(ChatToPublic).where(ChatToPublic.can_send == True, ChatToPublic.post_scheduler == True)
+    groups = db.execute(stmt).scalars().all()
     admins =  db.execute(select(User.telegram_id).where(User.role == 1)).scalars().all()
-    if len(res) > 0:
+    if len(groups) > 0:
         #получить весь список бронирований за пять дней 
         grouped_bookings = get_bookings_last_5_days(db=db)
         text = create_booking_msg(grouped_bookings)
-        for chat in res:
+        for chat in groups:
             try:
                 new_msg = edit_message(bot=bot, chat_id=chat.chat_id, message_id=chat.editing_msg_id, new_text=text)
                 chat.editing_msg_id = new_msg.message_id
@@ -79,7 +92,7 @@ async def _edit_msg(bot:Bot, chat_id:int, msg_id:int|None, new_text:str):
             is_deleted:bool = await bot.delete_message( chat_id=chat_id, message_id=msg_id)
             if not is_deleted:
                 raise Exception("Не удалось удалить предыдущее сообщение расписания")
-        new_edit_message:Message = await bot.send_message(chat_id=chat_id, text=new_text)
+        new_edit_message:Message = await _send_text_async(bot=bot, chat_id=chat_id, text=new_text)
         if new_edit_message is None:
             raise Exception("Не удалось опубликовать расписание")
         return new_edit_message

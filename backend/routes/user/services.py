@@ -1,3 +1,4 @@
+from utils.msg_creator import msg_after_creating_booking
 from routes.user.schemas import BookingCreatePayload, ChangeStatusBookingPayload
 from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -56,13 +57,13 @@ def create_booking(user_id:int, payload:BookingCreatePayload, bot:Bot, scheduler
     reminder_job = make_reminder_job_spec(booking=res,remind_at=get_remind_at(res, settings.reminder_lead_time), bot=bot)
     if reminder_job != None :
         scheduler.add_job(**reminder_job.as_add_job_kwargs())
-        logger.info("Добавлен подзадача по напоминанию по бронированию %d",booking.id)
+        logger.info("Добавлена подзадача по напоминанию о бронированию %d",booking.id)
     admin_msg = f'Пользователь {user.first_name} забронировал корт {booking.court_id} на {payload.dateBooking.strftime("%d/%m/%Y")} \nВремя: {payload.start_time.strftime("%H:%M")} - {payload.end_time.strftime("%H:%M")}.\n Телефон: {user.phone_number}'
     #Оповестить админов о том что кто-то забронировал время
     admins = get_admins(session)
     notify_users(bot=bot, text=admin_msg, user_ids =  [ad.telegram_id for ad in admins])
     #Отправить сообщение пользователю что он забронировал время
-    send_text(bot=bot, chat_id=user.telegram_id,text = f'Вы забронировали корт {booking.court_id} на {booking.date}\n Время: {payload.start_time.strftime("%H:%M")} - {payload.end_time.strftime("%H:%M")}')
+    send_text(bot=bot, chat_id=user.telegram_id,text = msg_after_creating_booking(booking), type_inline="dashbord")
     #Обновить/создать сообщение в общей группе с перечислением бронирований
     #Получить все группы в которые необходимо постить сообщения
     update_message_in_groups(bot=bot, db=session)
